@@ -36,7 +36,11 @@ body{
   font:500 12px/1.45 var(--font-ui);
 }
 .fanband a{color:var(--band-ink); font-weight:700}
-main{flex:1; display:grid; place-items:center; padding:28px 16px}
+/* minmax(0,1fr) for the same reason as the holding page: without an explicit
+   track, `auto` sizes to the card's max-content and the card never shrinks to
+   a phone screen. */
+main{flex:1; display:grid; grid-template-columns:minmax(0,1fr);
+     place-items:center; padding:28px 16px}
 .form{
   width:min(640px, 100%); background:var(--paper);
   border:2px solid var(--frame); padding:26px 30px 24px;
