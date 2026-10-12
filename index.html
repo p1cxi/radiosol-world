@@ -49,13 +49,19 @@
   --frame:#8A91C9; --rule:#B9B092;
   --warn:#E06A52; --mint:#BFE8C8; --mint-ink:#1E5A34;
   --band-bg:#241F14; --band-ink:#E8E3D6;
+  --mist:#EEF2F6;                            /* the gradient's near-white foot */
 }
 *{box-sizing:border-box}
+/* The gradient RESOLVES rather than sitting at one saturation. Ours held
+   periwinkle the whole way down, which made the page feel like a solid block
+   with a card stuck on it; falling to near-white at the foot is what makes
+   the card read as floating, and it is most of the difference the designer's
+   version has over ours. */
 body{
   margin:0; min-height:100dvh; display:flex; flex-direction:column;
   overflow-x:hidden;        /* the eyes are position:fixed off both margins */
-  background:linear-gradient(176deg, var(--sky2), var(--sky) 62%);
-  font:400 14px/1.6 var(--font-ui); color:var(--ink);
+  background:linear-gradient(180deg, var(--sky) 0%, var(--sky2) 45%, var(--mist) 100%);
+  font:400 15px/1.6 var(--font-ui); color:var(--ink);
 }
 /* BANNER: stays paper, static, undamaged. The plain-language rule outranks
    the joke — someone who has never seen the game must read this as a real
@@ -75,12 +81,17 @@ body{
    mid-sentence. minmax(0,1fr) makes the track the space actually available —
    the 0 floor is what lets it shrink below min-content. */
 main{flex:1; display:grid; grid-template-columns:minmax(0,1fr);
-     place-items:center; padding:30px 16px 36px}
+     place-items:center; padding:clamp(18px,5vw,56px) clamp(14px,4vw,48px)}
 
+/* The halo-ring-then-soft-drop idiom, taken from the design reference. The
+   hard offset shadow we had pinned the card to the page like a sticker; a
+   6px ring of the gradient's own foot colour, hairlined, then a wide diffuse
+   drop, lifts it instead. Same trick, opposite read. */
 .notice{
-  width:min(1000px,100%); background:var(--paper);
+  width:min(1080px,100%); background:var(--paper);
   border:2px solid var(--frame); padding:12px;
-  box-shadow:0 2px 0 var(--frame), 9px 11px 0 rgba(42,49,64,.13);
+  box-shadow:0 0 0 6px var(--mist), 0 0 0 7px var(--frame),
+             0 26px 70px rgba(42,49,64,.26);
 }
 /* marching dots. Padding goes fluid so a phone spends its width on the words
    rather than on four nested frames: 26px of inner padding inside 12px of
@@ -99,37 +110,52 @@ main{flex:1; display:grid; grid-template-columns:minmax(0,1fr);
    unbreakable run keeps the track from ever shrinking — the 1fr lies. The
    breakpoint below only swaps the column count; this is what lets a column
    actually narrow. */
-.cols{display:grid; grid-template-columns:1.5fr 1fr; gap:22px}
-.cols > *{min-width:0}
-@media (max-width:760px){ .cols{grid-template-columns:1fr} }
-
+/* Breakpoint-free, from the reference. While both bases fit on one line the
+   enormous grow factor hands the body nearly all the slack; the moment they
+   cannot fit, they wrap to full width on their own. The 760px media query
+   this replaces was a guess at where that happens — flex-basis measures it.
+   min-width:0 is still required: a flex child's automatic minimum size is
+   its min-content, which is what let the page scroll sideways before. */
+.cols{display:flex; flex-wrap:wrap; gap:13px}
 .body{
+  flex:999 1 420px; min-width:0;
   background:var(--panel); border:1px solid var(--frame);
-  padding:clamp(20px,5vw,30px) clamp(17px,5vw,32px);
+  padding:clamp(20px,4vw,30px) clamp(18px,4vw,34px);
 }
 h1{
-  margin:0 0 22px; letter-spacing:.02em; color:var(--ink);
-  font:400 clamp(21px,6.2vw,27px)/1.3 var(--font-px);
+  margin:0 0 20px; letter-spacing:.02em; color:var(--ink);
+  font:400 clamp(24px,6.4vw,36px)/1.18 var(--font-px); text-wrap:balance;
 }
 p{margin:0 0 15px; line-height:1.72}
 .body p{max-width:60ch}
+/* The aside sits on the LAST LINE of the list, not floated up beside the
+   headline. Floated, it competed with the h1 for the eye and the ragged left
+   edge it produced read as an accident; baseline-aligned with the final
+   bullet it reads as a marginal note on the list, which is what it is. */
+.listrow{
+  display:flex; flex-wrap:wrap; justify-content:space-between;
+  align-items:flex-end; gap:16px 24px;
+}
 .calm{
-  float:right; margin:4px 0 14px 24px; max-width:170px; text-align:right;
-  color:var(--warn); font-size:12px; line-height:1.75;
+  margin:0; max-width:34ch; color:var(--warn);
+  font-size:13px; line-height:1.5;
 }
 .lbl{
   margin:26px 0 12px; font:400 10.5px var(--font-px); letter-spacing:.14em;
   text-transform:uppercase; color:var(--ink-dim);
 }
 /* the service-package list, inverted */
-ul{margin:0; padding:0; list-style:none}
-ul li{position:relative; padding:0 0 10px 22px}
+/* gap instead of per-item bottom padding, so the last bullet has no phantom
+   space under it — that trailing 10px is what would stop align-items:flex-end
+   from landing the aside on the final line. */
+ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
+ul li{position:relative; padding:0 0 0 22px}
 ul li::before{
-  content:""; position:absolute; left:2px; top:7px;
+  content:""; position:absolute; left:2px; top:8px;
   width:8px; height:8px; background:var(--ink-dim);
 }
 
-.side{display:flex; flex-direction:column; gap:13px}
+.side{flex:1 1 260px; min-width:0; display:flex; flex-direction:column; gap:10px}
 .sidehdr{
   background:var(--paper); border:1px solid var(--frame); padding:11px 13px;
   font:400 10.5px var(--font-px); letter-spacing:.14em; text-transform:uppercase;
@@ -155,10 +181,15 @@ ul li::before{
 }
 .sign:hover{filter:brightness(1.05)}
 
+/* Fluid, because nowrap + a fixed 10.5px meant the status line ran past the
+   card on a phone and got clipped mid-word. letter-spacing drops with it —
+   .1em of tracking is what pushed it over the edge at small widths. */
 .ticker{
   margin-top:22px; background:var(--band-bg); color:var(--band-ink);
-  padding:9px 12px; font:400 10.5px var(--font-px); letter-spacing:.1em;
-  display:flex; gap:12px; align-items:baseline; overflow:hidden; white-space:nowrap;
+  padding:9px 12px; letter-spacing:clamp(.04em,.6vw,.1em);
+  font:400 clamp(8.5px,2.4vw,10.5px) var(--font-px);
+  display:flex; gap:clamp(7px,2vw,12px); align-items:baseline;
+  overflow:hidden; white-space:nowrap;
 }
 .ticker .dash{flex:1; overflow:hidden; color:#6d6450}
 .fine{
@@ -254,8 +285,7 @@ main{position:relative; z-index:2}
 
     <div class="cols">
       <div class="body">
-        <p class="calm">remain calm —<br>this page records<br>nothing about you</p>
-        <h1>Nothing here&#8230;<br>yet?</h1>
+        <h1>Nothing here&#8230; yet?</h1>
         <p>This domain was registered by a player, for a fan-made map of
            chapter one. Nothing has been put up, and nothing will be without
            the RADIOSOL team's say-so.</p>
@@ -266,13 +296,18 @@ main{position:relative; z-index:2}
              script, no cookie, no beacon — and that is what it claims. The
              aside and the footer were already scoped this way; this bullet
              was the one over-reaching. -->
-        <p class="lbl">This page also includes:</p>
-        <ul>
-          <li>no ads</li>
-          <li>no analytics</li>
-          <li>nothing tracked</li>
-          <li>no record kept by this page</li>
-        </ul>
+        <div class="listrow">
+          <div>
+            <p class="lbl">This page also includes:</p>
+            <ul>
+              <li>no ads</li>
+              <li>no analytics</li>
+              <li>nothing tracked</li>
+              <li>no record kept by this page</li>
+            </ul>
+          </div>
+          <p class="calm">remain calm &#8212; this page<br>records nothing about you</p>
+        </div>
       </div>
 
       <div class="side">
