@@ -201,6 +201,9 @@ footer{
   padding:9px 14px; background:rgba(42,49,64,.14); color:var(--ink);
   font-size:11px; text-align:center; letter-spacing:.04em;
 }
+/* the credit link inherits the civic ink — browser-default blue was the one
+   unstyled thing on the page */
+footer a{color:inherit}
 
 /* DAMAGE. The portal's own look: dither speckle, displaced blocks, a torn
    strip. Static and decorative only — nothing here sits over text, because
@@ -345,7 +348,11 @@ main{position:relative; z-index:2}
   </div>
 </main>
 
-<footer>Unofficial · fan-made · not affiliated with the RADIOSOL team</footer>
+<!-- credit sits NEXT TO the disclaimer, not inside the banner: "fan-made by a
+     named fan" makes unofficial more believable, not less -->
+<footer>Unofficial · made with ❤ by
+  <a href="https://discord.com/users/795419183713878036">picxi (picxi333 on discord)</a>
+  · not affiliated with the RADIOSOL team</footer>
 
 <script>
 (function(){
