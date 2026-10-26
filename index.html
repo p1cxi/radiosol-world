@@ -1044,7 +1044,14 @@
        with per-block margins, "[Collector entrance] T2 WORLD" overran the
        kind bar by a measured 11px and the bar CLIPPED it with no sign it had
        happened, and the margins left uneven gaps wherever a block was absent. */
-    position:absolute; left:0; top:0; width:360px; max-width:calc(100% - 28px);
+    /* z-index 10, and it had NONE until the first phone test. The card is the
+       answer to a question; the controls that ask it must not float over it.
+       On a desktop the find box sits top-left and the card lands beside the
+       mark, so they rarely met — on a 390px stage both are in the same narrow
+       column, and the search field drew straight across an open plate.
+       Above .f-find (8) and .kindlist (9), below .spot (12) and .wffull (14),
+       which both open FROM a card and so belong on top of it. */
+    position:absolute; left:0; top:0; width:360px; max-width:calc(100% - 28px); z-index:10;
     background:var(--panel); border:1px solid var(--rule); border-left:3px solid var(--amber);
     box-shadow:0 6px 26px var(--shadow); border-radius:2px;
     display:none;
@@ -1091,7 +1098,7 @@
   .cardlead{
     position:absolute; height:1px; transform-origin:0 50%;
     background:var(--kc,var(--amber)); opacity:.9;
-    pointer-events:none; z-index:5;   /* .card is 6 — explicitly under it,
+    pointer-events:none; z-index:5;   /* .card is 10 — explicitly under it,
                                          not relying on document order */
   }
   #cardlead[hidden]{display:none !important}
@@ -2862,10 +2869,37 @@ function flash(msg){
    just shown. Matching the margin keeps the floor below fit() at every size;
    the 0.8 is slack on top so the edges are reachable rather than exactly flush. */
 const WORLD_SPAN = 11657;   // fallback when no mosaic is in the payload
+/* THE 240px MARGIN IS AN ASSUMPTION ABOUT DESKTOPS, and on the first real
+   phone it went negative. The launch-night screenshot: stage 390×195, so
+   195−240 = −45, the "collapsed canvas" floor kicked in, and minScale
+   returned exactly 0.8×0.004 = 0.0032 — the scale sitting in the address
+   bar of a black screen. At 0.0032 the whole 11,657u world is a 37px speck
+   and one thumb-drift pans three worlds sideways. test_minscale.js was
+   green throughout: its smallest case was 420px tall, above the cliff.
+   The margin now yields before it can invert — never more than 40% of the
+   dimension — so a short stage keeps a floor that holds the world readable
+   instead of abandoning it. */
+function availDim(d){ return Math.max(d - 240, d * 0.6, 1); }
 function minScale(){
   const span = (AERIAL && AERIAL.span) || WORLD_SPAN;
-  const s = Math.min(cv.clientWidth - 240, cv.clientHeight - 240) / span;
-  return 0.8 * Math.max(s, 0.004);   // floor guards a collapsed/hidden canvas
+  const s = Math.min(availDim(cv.clientWidth), availDim(cv.clientHeight)) / span;
+  return 0.8 * Math.max(s, 0.004);   // floor still guards a hidden canvas
+}
+/* AND THE CENTRE CAN NEVER LEAVE THE WORLD. No writer of view.x/z clamped —
+   not drag, not the pinch midpoint drift, not zoomAt's recentre — because on
+   a desktop minScale kept enough world on screen that you could always see
+   your way back. At phone scales that guarantee died, and the void has no
+   landmarks. Called at the top of draw(), which every writer already
+   schedules, rather than in each writer: one clamp, no path around it —
+   including a garbage #x,z,s hash arriving from a share. */
+function clampView(){
+  const span = (AERIAL && AERIAL.span) || WORLD_SPAN;
+  const x0 = AERIAL ? AERIAL.x0 : -span / 2;
+  const z0 = AERIAL ? AERIAL.z0 : -span / 2;
+  const m = span * 0.12;
+  view.x = Math.min(x0 + span + m, Math.max(x0 - m, view.x));
+  view.z = Math.min(z0 + span + m, Math.max(z0 - m, view.z));
+  view.s = Math.max(minScale(), Math.min(2.2, view.s));
 }
 
 /* ---- flying to a place ------------------------------------------------------
@@ -3214,6 +3248,7 @@ let dprCap = 2, drawEma = -1, drawCheap = 0;
 
 function draw(){
   const _t0 = performance.now();
+  clampView();     // one gate every writer passes through — see clampView
   const dpr = Math.min(devicePixelRatio || 1, dprCap);
   const W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== W*dpr || cv.height !== H*dpr){ cv.width = W*dpr; cv.height = H*dpr; }
