@@ -1414,9 +1414,17 @@
        photograph began. The designer's answer is one 44px band holding only
        the tier control and a ⌕, and the verbs moved to the right edge where a
        thumb already rests. 184 -> 44 above the map, 30px targets -> 44px. */
+    /* FULL BLEED, because a bar that stops short of the edges is not a bar.
+       Inset by the desktop's 14px margin it read as a strip floating over the
+       photograph with slivers of map showing past both ends — "not connected
+       at the sides", which is exactly what a panel looks like when it is
+       trying to be a bar. The comp draws it edge to edge; so does this. The
+       side borders and the corner radius go with the margin, for the same
+       reason: they are what makes a thing look detachable. */
     .f-tier{
-      left:14px; right:62px; width:auto; max-width:none; top:14px;
+      left:0; right:44px; width:auto; max-width:none; top:0;
       height:44px; padding:0; display:flex; align-items:stretch;
+      border-left:0; border-right:0; border-top:0; border-radius:0;
     }
     /* the title is in the fanband two rows up and the count moves into the
        search placeholder, where it still tracks the tier and costs no room */
@@ -1428,16 +1436,21 @@
        back up to hide a previous sibling — so the find row simply draws over
        the strip, opaque and one step higher. Same result, no DOM order to
        keep in step with a stylesheet. */
-    .f-find{left:auto; right:14px; top:14px; width:44px; max-width:none;
+    .f-find{left:auto; right:0; top:0; width:44px; max-width:none;
             z-index:9; background:var(--panel)}
-    .f-find button{width:44px; height:44px; border-right:1px solid var(--rule);
-                   border-radius:2px; font-size:22px}
+    .f-find button{width:44px; height:44px; border:0;
+                   border-bottom:1px solid var(--rule);
+                   border-radius:0; font-size:22px}
+    /* A PHONE HAS NO CONTROL KEY. The field prints its own shortcut so the
+       shortcut is learnable by reading the thing you are already using —
+       which is right on a keyboard and meaningless on a touchscreen, where
+       it is a badge of instructions nobody can follow. */
+    .f-find .kbd{display:none}
     .f-find input{width:0; padding:0; border:0; height:44px}
-    .f-find:focus-within{left:14px; width:auto}
-    .f-find:focus-within button{border-right:0; border-radius:2px 0 0 2px}
+    .f-find:focus-within{left:0; width:auto}
     .f-find:focus-within input{width:100%; max-width:none; padding:0 10px;
-                               border:1px solid var(--rule); border-left:0}
-    .f-ac{left:0; width:calc(100vw - 56px); top:46px}
+                               border:0; border-bottom:1px solid var(--rule)}
+    .f-ac{left:0; width:100vw; top:44px}
     /* the verbs, where a thumb reaches. --hudtop keeps them off the readings
        strip, which wraps to two and three rows as the numbers grow. */
     .tools{
