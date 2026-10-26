@@ -1368,6 +1368,8 @@
      clothes rather than inventing a second way to look like one. It goes
      somewhere instead of highlighting something, so it takes the amber the
      rest of the page uses for "this moves you". */
+  .card .colink .dglyph{width:15px; height:15px; vertical-align:-3px;
+                        margin-right:3px}
   .card .colink{color:var(--amber); cursor:pointer;
                 border-bottom:1px dotted var(--amber-dim)}
   .card .colink:hover{border-bottom-color:var(--amber)}
@@ -5721,8 +5723,20 @@ function _destLink(name){
   const esc = String(name).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const hits = DATA.marks.filter(m => m.n === name);
   if (hits.length !== 1) return esc;
+  /* AND ITS GLYPH, so the name tells you what to look for. A vent card says
+     the airflow leads to the Cooling fan; the fan is a mark on this map with
+     a drawing of its own — an amber diamond with three blades — and the card
+     named it in words while showing nothing you could match against the
+     photograph. "There's still no fan icon" is exactly right: there was one,
+     a kilometre away, and nothing here said so.
+     Rendered through glyphSVG, the same drawing the legend, the search rows
+     and the [HERE] list use, so a destination cannot come to look like
+     something the map does not draw. */
+  const ic = iconOf(hits[0]);
+  const g = glyphSVG(ic, layerOf(hits[0]));
+  g.setAttribute('class', 'dglyph');
   return `<a class="colink" role="button" tabindex="0" `
-       + `data-ix="${DATA.marks.indexOf(hits[0])}">${esc}</a>`;
+       + `data-ix="${DATA.marks.indexOf(hits[0])}">${g.outerHTML}${esc}</a>`;
 }
 
 function showCard(m){
