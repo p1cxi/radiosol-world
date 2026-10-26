@@ -1079,6 +1079,14 @@
     display:none;
   }
   .card.on{display:flex; flex-direction:column}
+  /* 18b — the handle. Drawn above 600px too, just never shown: a rule that
+     only exists inside a media query is a rule nobody finds when they are
+     reading the card's own styles. */
+  .card .grab{display:none; flex:0 0 20px; align-items:center;
+              justify-content:center; cursor:grab; touch-action:none}
+  .card .grab i{display:block; width:34px; height:4px; border-radius:2px;
+                background:var(--rule)}
+  .card .grab:active{cursor:grabbing}
 
   /* ROUND EIGHT — the card wears the MARK'S colour. --kc is set per mark in
      showCard(), so the bar and the left rim match the token you clicked and
@@ -1484,9 +1492,18 @@
     .f-ac{left:0; width:100vw; top:44px}
     /* the verbs, where a thumb reaches. --hudtop keeps them off the readings
        strip, which wraps to two and three rows as the numbers grow. */
+    /* the verbs ride up with the sheet's top edge rather than hiding under
+       it — max(), so whichever of the readings strip and the sheet is taller
+       is the one they clear */
     .tools{
-      left:auto; right:14px; top:auto; bottom:var(--hudtop, 112px);
+      left:auto; right:14px; top:auto;
+      bottom:max(var(--hudtop, 112px), calc(var(--sheet, 0px) + 10px));
       flex-direction:column; flex-wrap:nowrap; gap:6px;
+    }
+    /* at full there is no map left to zoom, so they stand down rather than
+       sit on top of the thing the reader is reading */
+    .shell.sheetfull .tools, .shell.sheetfull .hud, .shell.sheetfull .f-drop{
+      display:none;
     }
     .tools button{width:44px; height:44px; font-size:15px}
     .tools button.wide{width:44px; font-size:10px}
@@ -1531,7 +1548,54 @@
        moves under it. `min-height:0` because the body is a flex item, and a
        flex item will not shrink below its content without it — the scroll
        simply never engages. */
-    .card{max-height:calc(100% - 24px)}
+    /* ROUND EIGHTEEN 18b — THE CARD IS A SHEET.
+       A card on a phone was a floating panel 93% of the width of the stage
+       and 77% of its height, which is a full-screen view drawn as though it
+       were hovering beside something. It comes up from the bottom instead,
+       in two detents: a peek that answers what a shared link has to answer —
+       name, where it is, coordinates, COPY LINK — and a full that is the
+       whole card.
+       HEIGHT IS A VARIABLE, NOT A RULE. The detents are computed from the
+       card's own content and the stage, because the designer's own figure
+       moved once already (586 was a cap, not a height) and a number typed
+       here would be a third place for it to drift. JS owns --sheet; this
+       says only how the thing is shaped. */
+    .card{
+      left:0 !important; right:0 !important;
+      top:auto !important; bottom:0 !important;
+      width:100%; max-width:none;
+      height:var(--sheet, 262px); max-height:none;
+      border:0; border-top:3px solid var(--kc,var(--amber)); border-radius:0;
+      box-shadow:0 -8px 26px var(--shadow);
+    }
+    .card .grab{display:flex}
+    /* THE PLATE IS NOT IN THE PEEK. 18b's peek draws the kind bar, the name,
+       the coordinates and COPY LINK — and no photograph. I built the peek as
+       a 262px window onto the whole card, so a 200px plate plus a 24px kind
+       bar plus the 20px handle filled it and the NAME never appeared: the one
+       thing a shared link has to say first was the first thing pushed off.
+       The picture is why someone drags up. */
+    .shell:not(.sheetfull) .card .plates{display:none}
+    /* ...AND NEITHER ARE THE DETAIL ROWS. 18b's peek is identity, position
+       and the two actions: kind bar, zone, name, X Y Z, COPY LINK, WALK FROM
+       HERE. Everything that EXPLAINS — the walk, what it converges with,
+       where it leads, the record, the scan — is why you drag up.
+       Leaving them in put COPY LINK 33px below the fold, which is the one
+       control a shared link exists to offer. */
+    .shell:not(.sheetfull) .card dl,
+    .shell:not(.sheetfull) .card #c-rec,
+    .shell:not(.sheetfull) .card #c-scan,
+    .shell:not(.sheetfull) .card #c-wf,
+    .shell:not(.sheetfull) .card #c-rd,
+    .shell:not(.sheetfull) .card #c-fromyou{display:none}
+    /* the ESC tab is a keyboard affordance on a surface with no keyboard,
+       and it hangs above the card's own edge where the sheet has no room */
+    .card .esctag{display:none}
+    /* 18b — ALSO HERE is a row you press, so it gets a row's height */
+    .card dd a.colink{display:inline-block; min-height:44px; line-height:44px}
+    @media (prefers-reduced-motion: no-preference){
+      .card{transition:height .22s cubic-bezier(.22,.61,.36,1)}
+    }
     .cbody{overflow-y:auto; min-height:0; overscroll-behavior:contain}
     /* The capture is square and full-width, which is most of that 547px. It
        letterboxes rather than crops: .wfmat centres it and the img is already
@@ -1923,6 +1987,13 @@
            colour, so the card reads as the thing you clicked extending itself
            rather than a panel that appeared nearby. -->
       <span class="esctag">ESC OR X TO CLOSE</span>
+      <!-- ROUND EIGHTEEN 18b — the sheet's handle, phone only. It is the only
+           part of this card that is a GESTURE rather than a control, so it is
+           the only part with no label: a 20px bar with a grip, which is the
+           shape every sheet on a phone already uses. Hidden above 600px,
+           where the card floats beside its mark and there is nothing to
+           drag. -->
+      <div class="grab" id="cardgrab" aria-hidden="true"><i></i></div>
       <p class="kind" id="c-kind">
         <span id="c-kind-t"></span>
         <span class="c-sp"></span>
@@ -3722,7 +3793,7 @@ function draw(){
   // overlapping glyphs. Clicking one zooms in far enough to separate them.
   const stacks = [];
   for (const p of recs){
-    const s = stacks.find(s => Math.hypot(s.x - p.x, s.y - p.y) < 20);
+    const s = stacks.find(s => Math.hypot(s.x - p.x, s.y - p.y) < PICK_R);
     if (s) s.ps.push(p); else stacks.push({x: p.x, y: p.y, ps: [p]});
   }
   const D = 24, tokens = sites.concat(stacks);
@@ -4100,6 +4171,124 @@ const GAP = 60;
    Returns where the near edge actually ended up, because the clamps can move
    it: against the top or bottom of the map the card stops centring, and the
    leader has to follow the card rather than assume it got what it asked for. */
+
+/* ---- ROUND EIGHTEEN 18b — THE CARD AS A SHEET ------------------------------
+
+   Under 600px the card stops floating and comes up from the bottom edge, in
+   two detents. PEEK answers the question a shared link has to answer — what
+   this place is, where it is, and a way to copy the link. FULL is the whole
+   card. Above 600px none of this runs: the card floats beside its mark with
+   its leader, and there is nothing to drag.
+
+   THE HEIGHTS ARE MEASURED, NOT TYPED. The designer's own figure moved once
+   mid-conversation — 586 turned out to be a cap rather than a height — and a
+   number written into the stylesheet would have been a third place for it to
+   drift away from the content. Full is the card's own scrollHeight plus the
+   grab bar, clamped to the cap, so it cannot come up a row short when a mark
+   has an ALSO HERE line and cannot overrun when it does not. */
+const SHEET_PEEK = 262, SHEET_BAR = 20, SHEET_KEEP = 80;
+let sheetAt = 0;                 // 0 closed, 1 peek, 2 full
+function phoneSheet(){ return matchMedia('(max-width:600px)').matches; }
+function sheetFull(){
+  const st = cv.parentElement.getBoundingClientRect();
+  const body = card.querySelector('.cbody');
+  const want = (body ? body.scrollHeight : 0)
+             + (card.querySelector('.kind')?.offsetHeight || 24)
+             + (card.querySelector('.plates:not([hidden])')?.offsetHeight || 0)
+             + SHEET_BAR + 2;
+  /* the cap is the stage less a strip, so the mark a reader just pressed is
+     never completely buried by the thing describing it */
+  return Math.min(want, st.height - SHEET_KEEP);
+}
+function sheetSet(level){
+  if (!phoneSheet()){
+    document.documentElement.style.removeProperty('--sheet');
+    document.querySelector('.shell').classList.remove('sheetfull');
+    sheetAt = card.classList.contains('on') ? 1 : 0;
+    return;
+  }
+  sheetAt = level;
+  /* CLEAR WHAT placeAt LEFT BEHIND. A floating card is positioned with INLINE
+     left/top and an inline `bottom:auto`, and an inline declaration beats a
+     stylesheet however many !importants the rule carries on its other
+     properties. So a card that was ever placed as a float — on a wider
+     viewport, or by any path that reached placeAt before the media query
+     did — kept `bottom:auto`, and the sheet computed bottom:-262px and hung
+     below the stage with its whole height off-screen. The styles that
+     position it must be owned by one side or the other, so the sheet takes
+     them back. */
+  for (const k of ['left', 'top', 'right', 'bottom']) card.style[k] = '';
+  /* THE CLASS GOES ON BEFORE THE HEIGHT IS MEASURED. sheetFull() adds up the
+     card's own content, and the plate is display:none until `.sheetfull` is
+     set — so measuring first and toggling second asked how tall the card
+     would be with the picture hidden, and full came out 306px instead of
+     clearing the plate. The state has to be true before anything reads it. */
+  document.querySelector('.shell').classList.toggle('sheetfull', level === 2);
+  const h = level === 0 ? 0 : level === 1 ? SHEET_PEEK : sheetFull();
+  document.documentElement.style.setProperty('--sheet', h + 'px');
+  if (level) sheetCentre(h);
+}
+/* THE MAP MOVES SO THE MARK STAYS VISIBLE. A sheet covering the bottom half
+   of a stage will cover the mark that opened it about half the time, and a
+   card describing something you cannot see is a worse answer than no card.
+   The mark is put in the middle of what is LEFT, which is the designer's
+   "mark centred in what's left". */
+function sheetCentre(h){
+  if (!pinned) return;
+  const st = cv.parentElement.getBoundingClientRect();
+  const want = (st.height - h) / 2;
+  const have = sy(pinned.p[2]);
+  if (Math.abs(want - have) < 2) return;
+  view.z += (want - have) / view.s;
+  clampView(); draw();
+}
+
+/* The gesture. One pointer on the bar, an 8px threshold so a tap is not a
+   drag — the same threshold the touch hold in 9a uses, deliberately, because
+   a reader's thumb does not know which of our components it is on. Dragging
+   DOWN past peek closes, which is the fourth way out and the one a phone
+   reaches for first. */
+(() => {
+  const bar = document.getElementById('cardgrab');
+  if (!bar) return;
+  let from = null;
+  bar.addEventListener('pointerdown', e => {
+    if (!phoneSheet()) return;
+    bar.setPointerCapture(e.pointerId);
+    const cur = parseFloat(getComputedStyle(card).height) || SHEET_PEEK;
+    from = {y: e.clientY, h: cur, moved: 0};
+    card.style.transition = 'none';
+  });
+  bar.addEventListener('pointermove', e => {
+    if (!from) return;
+    const dy = from.y - e.clientY;
+    from.moved = Math.max(from.moved, Math.abs(dy));
+    if (from.moved < 8) return;
+    const st = cv.parentElement.getBoundingClientRect();
+    const h = Math.max(0, Math.min(st.height - SHEET_KEEP, from.h + dy));
+    document.documentElement.style.setProperty('--sheet', h + 'px');
+  });
+  const end = e => {
+    if (!from) return;
+    card.style.transition = '';
+    const h = parseFloat(getComputedStyle(card).height) || 0;
+    const tap = from.moved < 8;
+    from = null;
+    if (tap){ sheetSet(sheetAt === 2 ? 1 : 2); return; }
+    if (h < SHEET_PEEK * 0.6){ showCard(null); return; }
+    const full = sheetFull();
+    sheetSet(h > (SHEET_PEEK + full) / 2 ? 2 : 1);
+  };
+  bar.addEventListener('pointerup', end);
+  bar.addEventListener('pointercancel', end);
+  /* and the name is the other way up, as the comp says: "drag up or tap the
+     name". A name is a thing a thumb aims at without being told. */
+  const nm = document.getElementById('c-name');
+  if (nm) nm.addEventListener('click', () => {
+    if (phoneSheet()) sheetSet(sheetAt === 2 ? 1 : 2);
+  });
+})();
+
 function placeAt(el, px, py){
   const st = cv.parentElement.getBoundingClientRect();
   el.style.right = 'auto'; el.style.bottom = 'auto';
@@ -4884,11 +5073,26 @@ if (document.getElementById('fcopylink')){
 
 /* ---- hit testing ---- */
 function pickHit(px, py){
-  let best = null, bd = 17;
+  let best = null, bd = PICK_R;
   for (const h of hits){
     const d = Math.hypot(h.x - px, h.y - py);
-    const r = h.type === 'stack' ? 15 : h.type === 'me' ? 18 : 17;
+    const r = h.type === 'stack' ? 15 : h.type === 'me' ? 18 : PICK_R;
     if (d < Math.min(r, bd)){ bd = d; best = h; }
+  }
+  /* AND THE COUNT CHIP, which is drawn on the anchor's top-right corner and
+     is therefore 17.5px from its centre — half a pixel outside the radius it
+     was supposed to be inside. I wrote "it is painted inside the anchor's
+     existing pick radius" in the comment and did not measure it; it is not,
+     and the chip was unpressable from the day it shipped. The whole of its
+     job is to be pressed. */
+  if (!best){
+    for (const h of hits){
+      if (h.type !== 'mark' || !coGroups.has(h.m)) continue;
+      const bx = h.x + 24/2 - 14/2 + 3, by = h.y - 24/2 - 14/2 + 3;
+      if (px >= bx - 2 && px <= bx + 16 && py >= by - 2 && py <= by + 16){
+        best = h; break;
+      }
+    }
   }
   return best;
 }
@@ -4911,6 +5115,19 @@ function pickHit(px, py){
    them. If it would, zoom, as before. If it would not, say what is there.
    A group never zooms twice. */
 const MAXS = 2.2;                 // the same ceiling every writer of view.s clamps to
+/* ONE RADIUS FOR "TOO CLOSE TO TELL APART", because two of them left a dead
+   zone nobody could get out of. Records collapsed into a numbered stack when
+   their centres were within 20px, and separable() asked whether the ceiling
+   could push them 17px apart — the pick radius. A pair 18px apart was
+   therefore STACKED and judged SEPARABLE at the same time, so pressing it
+   called flyTo, and at maximum zoom flyTo has nowhere to go. The stack sat
+   there, unopenable, at every zoom, and the press fell through to the
+   ground menu. Found on a welder and a ball lightning 8.25 units apart,
+   reported from a phone and reproduced on a desktop at the zoom ceiling.
+   The number that matters is the one a thumb cares about: if two marks are
+   closer than a tap can separate, they are one target. Both systems read it
+   from here now. */
+const PICK_R = 17;
 /* "Apart" means separately tappable, so the test is the PICK RADIUS and not a
    token's width: two marks the ceiling can push 17px apart can each be hit on
    their own, and anything less is one target wearing two names. */
@@ -4919,7 +5136,7 @@ function separable(ms){
   const xs = ms.map(m => m.p[0]), zs = ms.map(m => m.p[2]);
   const spread = Math.max(Math.max(...xs) - Math.min(...xs),
                           Math.max(...zs) - Math.min(...zs));
-  return spread * MAXS >= 17;
+  return spread * MAXS >= PICK_R;
 }
 /* Everything a tap could have meant, stacks opened out, in draw order.
    Read from `hits` rather than from DATA, so it inherits the two filters that
@@ -5489,11 +5706,30 @@ function recEntry(m){
   box.replaceChildren(...out);
 }
 
+/* A DESTINATION IS A PLACE, SO IT SHOULD BE REACHABLE FROM HERE.
+   The sphere vents say "Leads to Cooling fan, Power Supply Sphere" and both
+   of those are marks on this map, with their own glyphs, drawn and hittable —
+   and the card printed them as flat text, so the one thing a reader wants
+   next, after being told where a passage goes, was the one thing they could
+   not do. ALSO HERE directly above it had been a link since 18c.
+   Resolved by NAME against the payload, and only linked when exactly one mark
+   answers to it: "Antenna mast" names twenty-three things and a link that
+   picks one of them arbitrarily is worse than no link. Anything ambiguous
+   stays as it was, which is also what happens to a destination we do not
+   carry a mark for. */
+function _destLink(name){
+  const esc = String(name).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const hits = DATA.marks.filter(m => m.n === name);
+  if (hits.length !== 1) return esc;
+  return `<a class="colink" role="button" tabindex="0" `
+       + `data-ix="${DATA.marks.indexOf(hits[0])}">${esc}</a>`;
+}
+
 function showCard(m){
   pinned = m;
   if (!m){
     const had = card.contains(document.activeElement);
-    card.classList.remove('on'); cardLeadOff(); draw(); syncHash();
+    card.classList.remove('on'); sheetSet(0); cardLeadOff(); draw(); syncHash();
     // only pull focus back if it was IN the card — otherwise closing a card
     // with the keyboard elsewhere would snatch the caret off whatever has it
     if (had) cv.focus();
@@ -5719,13 +5955,14 @@ function showCard(m){
   // and what the walk out of this entrance actually reached
   if (m.k === 'anomaly')
     rows.push(['Leads to', m.leads
-      ? `${m.leads} <span style="color:var(--ink-faint)">(walked)</span>`
+      ? `${_destLink(m.leads)} <span style="color:var(--ink-faint)">(walked)</span>`
       /* A vent mouth whose own walk stops at a junction still goes somewhere:
          what its SYSTEM reaches. Kept visibly weaker than a walked answer —
          the passage was never followed from here, and two claims of different
          strength must not read alike. */
       : (m.leadsSys && m.leadsSys.length
-         ? `${m.leadsSys.join(', ')} <span style="color:var(--ink-faint)">`
+         ? `${m.leadsSys.map(_destLink).join(', ')} `
+           + `<span style="color:var(--ink-faint)">`
            + `(through the joined passages, not walked from here)</span>`
          : '<span style="color:var(--ink-faint)">not yet walked</span>')]);
   // 9c — scanned is a machine's state; the route needs a you to measure from
@@ -5760,7 +5997,16 @@ function showCard(m){
      second escaping problem on top of the first one. Keyboard too: it is a
      role=button, so it has to answer Enter and Space like one. */
   dl.querySelectorAll('a.colink').forEach(a => {
-    const go = () => { const o = DATA.marks[+a.dataset.ix]; if (o) showCard(o); };
+    /* THROUGH THE TIER, NOT AROUND IT. A destination can sit above the tier
+       the reader is on — the card names it either way, so the name is not the
+       disclosure — but OPENING it is, and a link that walked straight past
+       the spoiler gate would be a quieter way through than the one we built
+       the modal for. Same prompt a shared link gets. */
+    const go = () => {
+      const o = DATA.marks[+a.dataset.ix];
+      if (!o) return;
+      if (spoilerOf(o) > spoiler) pinAsk(o); else showCard(o);
+    };
     a.onclick = go;
     a.onkeydown = ev => {
       if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); go(); }
@@ -5785,7 +6031,17 @@ function showCard(m){
   card.classList.add('on');
   card.classList.add('dim');
   // after .on, so offsetWidth is real
-  cardLead(sx(m.p[0]), sy(m.p[2]), placeAt(card, sx(m.p[0]), sy(m.p[2])));
+  /* 18b — A SHEET IS NOT PLACED, IT IS RAISED. placeAt pins a floating card
+     beside its mark and the leader draws from the token to that card's edge;
+     neither means anything for a surface that spans the bottom of the screen,
+     and placeAt writing left/top would fight the stylesheet. Peek first,
+     always: the reader asked what this is, not for everything we hold. */
+  if (phoneSheet()){
+    cardLeadOff();
+    sheetSet(1);
+  } else {
+    cardLead(sx(m.p[0]), sy(m.p[2]), placeAt(card, sx(m.p[0]), sy(m.p[2])));
+  }
   draw();
   // showCard draws DIRECTLY rather than scheduling, so the hash sync hanging
   // off scheduleDraw never saw a card open or close — the URL kept the
