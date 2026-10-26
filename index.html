@@ -3010,6 +3010,24 @@ let carry = null;                 // {from:'dock'|'map', moved, pose}
 // which walk the card is pointing at, if any. Up here with the other state
 // draw() reads, not beside the card code that sets it.
 let rtFocus = null;
+/* EVERY SEGMENT OF THE WALKS THESE IDS TOUCH. A route is cut where it crosses
+   the surface, so one walk arrives as several entries sharing a name, and a
+   mark is joined to whichever segment is nearest it. Expanding along the name
+   is what makes the map agree with the card, which has always printed the
+   walk once. Defined here, beside rtFocus, because BOTH readers need it: the
+   draw that decides which routes exist for an open card, and the hover that
+   decides which of them step forward. They disagreed once and the result was
+   a walk that half-dimmed itself. */
+function walkOf(ids){
+  if (!ids || !ids.length || !DATA.tunnels) return [];
+  const names = new Set(ids.map(i => DATA.tunnels[i] && DATA.tunnels[i].n)
+                           .filter(Boolean));
+  const out = [];
+  DATA.tunnels.forEach((t, i) => {
+    if (ids.includes(i) || (t.n && names.has(t.n))) out.push(i);
+  });
+  return out;
+}
 // has this browser ever placed a spider? Persisted, because the FROM YOU hint
 // is worth showing once and worth never showing twice.
 const METOLD = 'n96.placed.v1';
@@ -3468,7 +3486,22 @@ function draw(){
   // not. The incinerator's whole path is a surface one, and publishing it as a
   // tunnel would have been a worse lie than leaving it out.
   const _shown = pinned || hover;
-  const _rt = (_shown && _shown.rt) ? _shown.rt : [];
+  const _rtLinked = (_shown && _shown.rt) ? _shown.rt : [];
+  /* SEGMENTS OF ONE WALK ARE ONE WALK, AND THE MAP HAD FORGOTTEN THAT.
+     A route is cut where it crosses the surface, so a single walk arrives here
+     as several entries sharing a name: "Chem secret tunnel - to repair depot"
+     is a 41-point, 5,170-unit run AND a 33-unit stub. A mark is joined to
+     whichever segment is nearest it, and for the railcar repair plant that is
+     the stub — so opening its card drew a 33-unit dash sitting in open ground
+     198 units away, attached to nothing and leading nowhere. It read as a
+     phantom because that is exactly what it looked like.
+     The card has always treated the walk as one thing; it dedupes these by
+     name and prints "Chem secret tunnel - to repair depot" once. Only the
+     drawing disagreed. So the focus expands along the name: link to any part
+     of a walk and the whole walk draws. The `under` split below still works
+     per segment, which is what keeps a surface stretch from claiming to be
+     buried just because the run it belongs to mostly is. */
+  const _rt = walkOf(_rtLinked);
   if (_rt.length && DATA.tunnels && DATA.tunnels.length){
     ctx.lineJoin = ctx.lineCap = 'round';
     for (const under of [1, 0]){
@@ -5601,7 +5634,7 @@ function showCard(m){
      part of reading it, and isolation would answer one question by hiding
      the answer to another. */
   for (const el of dl.querySelectorAll('.wk')){
-    const ids = el.dataset.rt.split(',').map(Number);
+    const ids = walkOf(el.dataset.rt.split(',').map(Number));
     el.onmouseenter = () => { rtFocus = ids; scheduleDraw(); };
     el.onmouseleave = () => { rtFocus = null; scheduleDraw(); };
     // keyboard and touch reach it too: a tap or a focus is the same intent
