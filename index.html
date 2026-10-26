@@ -4126,8 +4126,14 @@ function draw(){
     ctx.restore();
   }
 
-  // keep anchored panels on their subject as the map moves beneath them
-  if (pinned && card.classList.contains('on')){
+  /* keep anchored panels on their subject as the map moves beneath them —
+     AND NOT WHEN THE CARD IS A SHEET. A leader is a line from a token to the
+     edge of a floating card; a sheet has no edge to point at, so the line ran
+     from the mark straight off the side of the screen. showCard turns it off
+     when it raises the sheet, and then this redrew it on the very next frame,
+     which is every frame. A thing switched off in one place and back on in
+     the draw loop is off for exactly as long as nothing moves. */
+  if (pinned && card.classList.contains('on') && !phoneSheet()){
     const lx = sx(pinned.p[0]), ly = sy(pinned.p[2]);
     cardLead(lx, ly, placeAt(card, lx, ly));
   }
@@ -5443,6 +5449,8 @@ function wfKey(m){ return m && m.wfall ? m.wfall : ''; }
 function cardReplace(){
   const card = document.getElementById('card');
   if (!card || !card.classList.contains('on') || !pinned) return;
+  // a sheet is not placed and has no leader; see the note in draw()
+  if (phoneSheet()) return;
   const px = sx(pinned.p[0]), py = sy(pinned.p[2]);
   cardLead(px, py, placeAt(card, px, py));
 }
