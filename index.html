@@ -1455,6 +1455,24 @@
        which is right on a keyboard and meaningless on a touchscreen, where
        it is a badge of instructions nobody can follow. */
     .f-find .kbd{display:none}
+
+    /* NO BACKDROP BLUR ON A PHONE, and this is a performance rule rather
+       than a visual preference.
+       `backdrop-filter` asks the compositor to re-sample and re-blur whatever
+       sits beneath a layer. Beneath these is a canvas that repaints in full on
+       every frame of a pinch, so the blur is recomputed sixty times a second
+       for a strip across the top and three chips along the bottom — and the
+       result is a soft edge nobody is looking at while they are moving the
+       map. Chrome on Android pays far more for this than Firefox does, which
+       is why zooming felt heavy in one and not the other on the same handset.
+       The panels keep their own opaque ground instead. Above 600px the blur
+       stays: a desktop is not pinching, and there the effect is what makes
+       floating chrome read as glass over a photograph. */
+    .f-tier, .chip, .f-ac, .f-wp, .kindlist, .f-drop .dlbl{
+      backdrop-filter:none;
+    }
+    .f-tier, .f-ac, .f-wp, .kindlist{background:var(--panel)}
+    .chip{background:var(--panel)}
     .f-find input{width:0; padding:0; border:0; height:44px}
     .f-find:focus-within{left:0; width:auto}
     .f-find:focus-within input{width:100%; max-width:none; padding:0 10px;
