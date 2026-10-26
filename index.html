@@ -970,6 +970,28 @@
      simply not being there — absence tells you nothing about why */
   .spot button:disabled{cursor:not-allowed; color:var(--ink-faint)}
   .spot button em{font-style:normal; font-size:7px; color:var(--hot)}
+  /* ROUND EIGHTEEN 18c — [HERE · n], the third header on this frame.
+     These rows GO somewhere rather than DO something, exactly like the nearest
+     rows above, so they borrow that reading: 44px for a thumb, the name in the
+     page's own type rather than the menu's small caps, and the kind under it.
+     Placed AFTER `.spot button` on purpose. It has the same specificity on
+     the properties it overrides, so document order is what decides — the rule
+     this file has been bitten by twice, most recently a layer rule that sat
+     later and silently beat the new one. Later and deliberate. */
+  .spot .spitems button.hrow{
+    height:44px; gap:9px; padding:0 10px;
+    font:400 11.5px/1.3 var(--font-ui); letter-spacing:0; text-transform:none;
+  }
+  .spot .spitems button.hrow svg{flex:0 0 20px; width:20px; height:20px; display:block}
+  .spot .spitems button.hrow span{flex:1; min-width:0; display:flex;
+                                  flex-direction:column; gap:2px}
+  .spot .spitems button.hrow b{font-weight:400; overflow:hidden;
+                               text-overflow:ellipsis; white-space:nowrap}
+  .spot .spitems button.hrow i{font-style:normal; font:400 8px/1 var(--font-data);
+                               letter-spacing:.1em; text-transform:uppercase;
+                               color:var(--ink-faint)}
+  .spot .spitems button.hrow u{text-decoration:none; color:var(--amber-dim);
+                               flex:0 0 auto; font-size:12px}
 
   /* ROUND NINE 9a — the dock, and the spider it holds. Bigger than a glyph
      button because the thing inside it is a body, not a symbol. */
@@ -1349,6 +1371,14 @@
   .card .wk{color:var(--ink); cursor:default; border-bottom:1px dotted var(--rule)}
   .card .wk:hover, .card .wk:focus-visible{color:var(--tunnel); border-bottom-color:var(--tunnel)}
   .card .wk:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  /* 18c — and a co-sited name is a handle too, so it borrows the walk's
+     clothes rather than inventing a second way to look like one. It goes
+     somewhere instead of highlighting something, so it takes the amber the
+     rest of the page uses for "this moves you". */
+  .card .colink{color:var(--amber); cursor:pointer;
+                border-bottom:1px dotted var(--amber-dim)}
+  .card .colink:hover{border-bottom-color:var(--amber)}
+  .card .colink:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
   .card dd{margin:0; color:var(--ink); font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
   /* .card .x is styled up with the kind bar it now lives inside. It used to be
      positioned absolutely from here, and that rule sat LATER in the file than
@@ -3161,6 +3191,14 @@ function wheelStep(now){
    Marks at the same world point cannot be separated by any zoom; those keep the
    old fixed step and stay a cluster, which is the truth about them. */
 function revealStack(h){
+  /* 18c — the guard that ends the loop, here as well as at the call site.
+     This is reachable from the double-click path and from anywhere a stack is
+     revealed without going through the click handler, and a stack the ceiling
+     cannot open is exactly the case where flying in does nothing twice. */
+  if (!separable(h.ms)){
+    const r = cv.getBoundingClientRect();
+    if (hereOpen(r.left + h.x, r.top + h.y, h.ms)) return;
+  }
   const xs = h.ms.map(m => m.p[0]), zs = h.ms.map(m => m.p[2]);
   const x0 = Math.min(...xs), x1 = Math.max(...xs);
   const z0 = Math.min(...zs), z1 = Math.max(...zs);
@@ -4088,6 +4126,23 @@ function spotItems(el, items, ok){
   const box = document.getElementById('spotitems');
   box.replaceChildren(...items.map(it => {
     const b = document.createElement('button');
+    /* 18c — a row that goes to a mark, rather than doing a thing to a spot.
+       It carries the mark's own glyph, so the list and the map agree about
+       what each thing is, and glyphSVG is the same drawing the legend and
+       the search rows use: a second copy here would be a third place for the
+       diamond family's 0.72 to drift out of step with glyph(). */
+    if (it.ic){
+      b.className = 'hrow';
+      b.append(glyphSVG(it.ic, it.layer));
+      const sp = document.createElement('span');
+      const nm = document.createElement('b'); nm.textContent = it.lb;
+      const kd = document.createElement('i'); kd.textContent = it.sub || '';
+      sp.append(nm, kd); b.append(sp);
+      const go = document.createElement('u'); go.textContent = '›';
+      go.setAttribute('aria-hidden', 'true'); b.append(go);
+      b.onclick = e => { it.go(e); spotClose(); };
+      return b;
+    }
     const sp = document.createElement('span'); sp.textContent = it.lb;
     b.append(sp);
     if (it.sub){
@@ -4592,6 +4647,105 @@ function pickHit(px, py){
   }
   return best;
 }
+/* ---- ROUND EIGHTEEN 18c — when zooming cannot help --------------------------
+
+   Some things in this world stand on the same spot. The collector entrance is
+   in the ground UNDER the Agglomerate 5 administrative centre, 1.4 units from
+   it, and five to seven pairs like it exist depending on the tier. Until now
+   the nearest of them won the tap by a margin of hundredths of a pixel, which
+   is not a choice anyone made: tapping the building opened the collector,
+   every time, because rounding is consistent.
+
+   The map already answers crowding by collapsing records into a numbered
+   token, and what that token does when you press it is FLY IN UNTIL THE
+   MEMBERS COME APART. That silently assumes they can. For this pair it asks
+   for 93x, gets the 2.2 ceiling, leaves them 3.1px apart, re-forms the group,
+   and does the same thing again on the next press — a loop, not an answer.
+
+   So the rule is the designer's: ask first whether the ceiling would separate
+   them. If it would, zoom, as before. If it would not, say what is there.
+   A group never zooms twice. */
+const MAXS = 2.2;                 // the same ceiling every writer of view.s clamps to
+/* "Apart" means separately tappable, so the test is the PICK RADIUS and not a
+   token's width: two marks the ceiling can push 17px apart can each be hit on
+   their own, and anything less is one target wearing two names. */
+function separable(ms){
+  if (ms.length < 2) return true;
+  const xs = ms.map(m => m.p[0]), zs = ms.map(m => m.p[2]);
+  const spread = Math.max(Math.max(...xs) - Math.min(...xs),
+                          Math.max(...zs) - Math.min(...zs));
+  return spread * MAXS >= 17;
+}
+/* Everything a tap could have meant, stacks opened out, in draw order.
+   Read from `hits` rather than from DATA, so it inherits the two filters that
+   already decide what is on the map — the spoiler tier and the viewport cull —
+   instead of re-deriving them and drifting. */
+function marksAt(px, py){
+  const out = [];
+  for (const h of hits){
+    if (Math.hypot(h.x - px, h.y - py) > 17) continue;
+    if (h.type === 'stack') out.push(...h.ms);
+    else if (h.m) out.push(h.m);
+  }
+  return [...new Set(out)];
+}
+/* THE TIER DECIDES WHO IS IN THE GROUP, and this is a spoiler rule rather
+   than a tidiness one — the designer caught it and they were right. At
+   Terrain the collector is hidden, so the centre is alone and opens straight
+   to its card. A group of "2" there would announce that something the tier
+   is withholding is underneath, which is the one thing the tier exists to
+   prevent. Nothing textual leaks; a COUNT leaks. `visible()` is therefore not
+   an optimisation here and must not be lifted out of the hot path. */
+function coSited(m){
+  return DATA.marks.filter(o => o !== m && visible(o) &&
+    Math.hypot(o.p[0] - m.p[0], o.p[2] - m.p[2]) * MAXS < 17);
+}
+function hereKind(m, anchor){
+  let base = KINDNAME[iconOf(m)] || KINDNAME[m.k] || 'Mark';
+  /* Some kinds ARE their name — a collector entrance's kind in KINDNAME is
+     "Collector entrance" — and a row reading the same five words twice is
+     noise pretending to be information. The comp sidesteps this by calling
+     that one "underground", but inventing a word here means inventing it for
+     every kind that ever collides, and the table is the one place this map
+     agrees with itself about what things are called. So the repeat is simply
+     dropped and the distance carries the row. */
+  if (base.toLowerCase() === (m.n || '').toLowerCase().trim()) base = '';
+  if (m === anchor) return base;
+  const d = Math.hypot(m.p[0] - anchor.p[0], m.p[2] - anchor.p[2]);
+  const away = `${d < 10 ? d.toFixed(1) : Math.round(d)} u away`;
+  return base ? `${base} · ${away}` : away;
+}
+/* [HERE · n] — the third header on the [THIS SPOT] frame, which is the
+   established pattern here rather than a new surface: same box, same bar,
+   the header tells you which one you opened. */
+function hereOpen(cx, cy, ms){
+  const el = document.getElementById('spot');
+  if (!el || ms.length < 2) return false;
+  kindListClose(); closeCopy(); showCard(null);
+  document.getElementById('spoth').textContent = `[Here · ${ms.length}]`;
+  document.getElementById('spotnear').hidden = true;
+  /* THE ANCHOR IS THE MOST PUBLIC THING HERE, not whatever draw order reached
+     the hit list first. Ordering by tier puts the district above the thing
+     buried under it, which is how the comp reads it and how a reader thinks
+     about it — you are at the administrative centre, and there happens to be
+     a collector beneath. Draw order gave the opposite and was arbitrary: it
+     is paint order, and it has no opinion about which of two places is the
+     one you meant. Distance breaks the tie, so the list is stable. */
+  const o0 = ms[0];               // fixed reference BEFORE the sort reorders
+  const dto = m => Math.hypot(m.p[0] - o0.p[0], m.p[2] - o0.p[2]);
+  ms = ms.slice().sort((p, q) => (spoilerOf(p) - spoilerOf(q)) ||
+                                 (dto(p) - dto(q)));
+  const a = ms[0];
+  document.getElementById('spotxyz').textContent =
+    `X ${Math.round(a.p[0])} · Z ${Math.round(a.p[2])} · one spot`;
+  spotItems(el, ms.map(m => ({
+    lb: m.n, sub: hereKind(m, a), ic: iconOf(m), layer: layerOf(m),
+    go: () => showCard(m),
+  })), true);
+  spotPlace(el, cx, cy);
+  return true;
+}
+
 // Unchanged contract: still a mark or null. A stack reports its densest
 // member so hover keeps working, and the click handler opens the stack.
 function pick(px, py){
@@ -5102,6 +5256,24 @@ function showCard(m){
   // anomaly is what people actually look for when hunting entrances — showing
   // one marker should not cost that.
   if (m.also) rows.push(['Also', m.also]);
+  /* ROUND EIGHTEEN 18c — ALSO HERE, the half of the answer the list cannot
+     give. A shared link opens a card directly and never passes through
+     [HERE · n], so the card itself has to say what it is standing on, or the
+     reader who followed the link to the administrative centre never learns
+     there is a collector under it.
+     Computed from coSited, so it obeys the same tier rule as the list and for
+     the same reason: naming a mark the tier is withholding would leak it in
+     prose, which is worse than leaking it as a count. Escaped the way the
+     other three game-text rows here are escaped — these are names out of the
+     payload going into innerHTML. */
+  const co = coSited(m);
+  if (co.length) rows.push(['Also here', co.map(o => {
+    const d = Math.hypot(o.p[0] - m.p[0], o.p[2] - m.p[2]);
+    return `<a class="colink" role="button" tabindex="0" `
+         + `data-ix="${DATA.marks.indexOf(o)}">`
+         + o.n.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</a>'
+         + ` <span class="rl">${d < 10 ? d.toFixed(1) : Math.round(d)} u</span>`;
+  }).join(', ')]);
   if (m.k === 'robot'){
     // Public: no save, so no scanned/not-scanned claim — the only state shown
     // is the game fact that the gated ones are not reachable on a free roam.
@@ -5304,6 +5476,17 @@ function showCard(m){
 
   const dl = document.getElementById('c-dl');
   dl.innerHTML = rows.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  /* 18c — the ALSO HERE names are handles. Wired after the innerHTML rather
+     than inline, because an onclick attribute in that string would be a
+     second escaping problem on top of the first one. Keyboard too: it is a
+     role=button, so it has to answer Enter and Space like one. */
+  dl.querySelectorAll('a.colink').forEach(a => {
+    const go = () => { const o = DATA.marks[+a.dataset.ix]; if (o) showCard(o); };
+    a.onclick = go;
+    a.onkeydown = ev => {
+      if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); go(); }
+    };
+  });
   /* Pointing at a walk's NAME brings that walk forward on the map. Four routes
      leaving one mark are four lines with nothing to say which is which, and
      the card is the only place they are named — so the name is the handle.
@@ -5449,7 +5632,17 @@ addEventListener('pointerup', e => {
       placeMe(Math.round(wx(px)), 0, Math.round(wz(py)), 'from the map');
     } else {
       const h = pickHit(px, py);
-      if (h && h.type === 'stack'){ revealStack(h); }
+      /* 18c — before anything else, ask what this tap could have meant. A
+         group the ceiling cannot separate says what is there instead of
+         picking for you; a group it CAN separate falls through and behaves
+         exactly as it did, so nothing changes for the crowded districts this
+         map was already good at. */
+      const ms = (h && (h.type === 'stack' || h.type === 'mark'))
+                   ? marksAt(px, py) : [];
+      if (ms.length > 1 && !separable(ms) && hereOpen(e.clientX, e.clientY, ms)){
+        // handled
+      }
+      else if (h && h.type === 'stack'){ revealStack(h); }
       else if (h && h.type === 'wp'){ showCard(null); openCopy(h.w); }
       // 11a — clicking yourself opens [YOU] too, not only right-click.
       // Right-click is the documented gesture and the dock says so, but a
