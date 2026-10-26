@@ -1429,8 +1429,17 @@
     /* the title is in the fanband two rows up and the count moves into the
        search placeholder, where it still tracks the tier and costs no room */
     .f-tier .ft-top, .f-tier .ft-note{display:none}
-    .f-tier .seg{flex:1; height:100%; border:0}
-    .f-tier .seg .btn{flex:1; height:100%; padding:0}
+    /* #fseg, NOT .seg — and this is the whole reason the band had a dead
+       strip across its bottom. The element carries both, but the base rules
+       are written `.f-tier #fseg .btn{height:26px}`, and an id outranks a
+       class no matter which comes later. So these two lines matched nothing,
+       the buttons kept their 26px desktop height inside a 44px band, and
+       every rect I measured still said "the band is 44px" — because it was.
+       Nothing was wrong with the number. The buttons simply were not in it. */
+    .f-tier #fseg{flex:1; height:100%; gap:0}
+    .f-tier #fseg .btn{flex:1; height:100%; padding:0; border-width:0 1px 0 0;
+                       border-radius:0}
+    .f-tier #fseg .btn:last-child{border-right:0}
     /* THE FIELD TAKES THE BAR, by covering it rather than by moving it. The
        comp shows the tiers giving way to the open field, and CSS cannot reach
        back up to hide a previous sibling — so the find row simply draws over
