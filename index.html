@@ -1408,10 +1408,47 @@
        states, because nothing about it says it is gone.
        It stacks rather than shrinks: these are the map's verbs and dropping
        one to make room would be choosing which verb nobody gets. */
-    .tools{right:auto; left:14px; top:var(--tierbottom, 118px); flex-wrap:wrap}
-    .f-find{left:14px; top:var(--toolsbottom, 156px); z-index:8}
-    .f-find input{width:calc(100vw - 70px); max-width:none}
-    .f-ac{left:0; width:calc(100vw - 56px)}
+    /* ROUND NINETEEN 18a — ONE BAR ON TOP, TOOLS UNDER THE THUMB.
+       The stack this replaces was a hotfix, not a design: three full-width
+       rows down the top of a phone, 184px of a 666px stage spent before the
+       photograph began. The designer's answer is one 44px band holding only
+       the tier control and a ⌕, and the verbs moved to the right edge where a
+       thumb already rests. 184 -> 44 above the map, 30px targets -> 44px. */
+    .f-tier{
+      left:14px; right:62px; width:auto; max-width:none; top:14px;
+      height:44px; padding:0; display:flex; align-items:stretch;
+    }
+    /* the title is in the fanband two rows up and the count moves into the
+       search placeholder, where it still tracks the tier and costs no room */
+    .f-tier .ft-top, .f-tier .ft-note{display:none}
+    .f-tier .seg{flex:1; height:100%; border:0}
+    .f-tier .seg .btn{flex:1; height:100%; padding:0}
+    /* THE FIELD TAKES THE BAR, by covering it rather than by moving it. The
+       comp shows the tiers giving way to the open field, and CSS cannot reach
+       back up to hide a previous sibling — so the find row simply draws over
+       the strip, opaque and one step higher. Same result, no DOM order to
+       keep in step with a stylesheet. */
+    .f-find{left:auto; right:14px; top:14px; width:44px; max-width:none;
+            z-index:9; background:var(--panel)}
+    .f-find button{width:44px; height:44px; border-right:1px solid var(--rule);
+                   border-radius:2px; font-size:22px}
+    .f-find input{width:0; padding:0; border:0; height:44px}
+    .f-find:focus-within{left:14px; width:auto}
+    .f-find:focus-within button{border-right:0; border-radius:2px 0 0 2px}
+    .f-find:focus-within input{width:100%; max-width:none; padding:0 10px;
+                               border:1px solid var(--rule); border-left:0}
+    .f-ac{left:0; width:calc(100vw - 56px); top:46px}
+    /* the verbs, where a thumb reaches. --hudtop keeps them off the readings
+       strip, which wraps to two and three rows as the numbers grow. */
+    .tools{
+      left:auto; right:14px; top:auto; bottom:var(--hudtop, 112px);
+      flex-direction:column; flex-wrap:nowrap; gap:6px;
+    }
+    .tools button{width:44px; height:44px; font-size:15px}
+    .tools button.wide{width:44px; font-size:10px}
+    /* the two links are not map tools and do not earn a thumb position; the
+       help sheet already explains the map and now carries them */
+    .tools a.ico{display:none}
     /* The dock's label is ~150px of a 390px screen, and it was what the
        nearest-list was actually colliding with — not the 42px spider. The
        spider explains itself the moment you touch it; the label is a desktop
@@ -1684,6 +1721,17 @@
       <p>Drag the spider out of its dock to stand somewhere — distances and
          routes are measured from it. Drag it back to put yourself away.</p>
       <p>Right-click any ground for a waypoint, or a link to that exact spot.</p>
+      <!-- 18a — THE TWO LINKS LIVE HERE TOO. They are not map tools, so they
+           do not earn a place in the thumb column a phone gets, and the
+           sheet that explains the map is where someone goes looking for
+           where it came from. Shown at every width: a desktop reader loses
+           nothing by the row existing twice, and a rule that hid them above
+           600px would be a second place to keep in step. -->
+      <p class="lgh">Where this comes from</p>
+      <p><a href="https://discord.gg/radiosol" target="_blank"
+            rel="noopener noreferrer">The RADIOSOL community Discord &rarr;</a><br>
+         <a href="https://youtu.be/uareB8YnxSw?list=PLc6SlyvYlikM" target="_blank"
+            rel="noopener noreferrer">The build log, on YouTube &rarr;</a></p>
       <!-- the legend is BUILT, not written: see buildLegend() -->
       <p class="lgh">What the marks mean</p>
       <div id="legend"></div>
@@ -5964,6 +6012,7 @@ document.getElementById('theme').onclick = () => {
   const t = document.getElementById('ftier');
   const tools = document.querySelector('.tools');
   if (!t) return;
+  const hud = document.querySelector('.hud');
   const set = () => {
     const h = t.hidden ? 0 : t.getBoundingClientRect().height;
     const tb = 14 + h + 8;
@@ -5971,11 +6020,19 @@ document.getElementById('theme').onclick = () => {
     const r = document.documentElement.style;
     r.setProperty('--tierbottom', tb + 'px');
     r.setProperty('--toolsbottom', (tb + th + 8) + 'px');
+    /* 18a — how high the readings strip reaches, so the thumb column can
+       stand clear of it. Measured rather than assumed: the strip wraps to two
+       and three rows as the coordinates grow and the imagery chip appears,
+       and a hardcoded offset would put the zoom buttons through it exactly
+       when there was most to read. */
+    const hh = hud ? hud.getBoundingClientRect().height : 0;
+    r.setProperty('--hudtop', (14 + hh + 10) + 'px');
   };
   if (window.ResizeObserver){
     const ro = new ResizeObserver(set);
     ro.observe(t);
     if (tools) ro.observe(tools);
+    if (hud) ro.observe(hud);
   }
   addEventListener('resize', set);
   set();
@@ -6790,7 +6847,14 @@ function applySpoiler(lvl){
   document.getElementById('spoilnote').textContent = SPOILNOTE[lvl];
   const fn = document.getElementById('ftnote'), fc = document.getElementById('ftct');
   if (fn) fn.textContent = SPOILNOTE[lvl];
-  if (fc) fc.textContent = DATA.marks.filter(visible).length + ' marks';
+  const _n = DATA.marks.filter(visible).length;
+  if (fc) fc.textContent = _n + ' marks';
+  /* 18a — and the same number in the field's placeholder, because on a phone
+     the strip that carried it is gone. It still tracks the tier, and it costs
+     no width: the placeholder was empty space saying "search places and
+     actions" to someone already looking at a search box. */
+  const _fi = document.getElementById('ffin');
+  if (_fi) _fi.placeholder = `Search ${_n} marks`;
   // 6a — console tabs: uppercase label, and an arrow on the one you are on.
   // The arrow is the selection, not the colour, so it survives a reader who
   // cannot tell amber from sand.
