@@ -3973,7 +3973,16 @@ function draw(){
       const p = pts.find(q => q.m === anchor);
       if (!p) continue;                       // culled off-screen this frame
       const col = colOf(anchor), S = 14, gap = 1.5;
-      const bx = p.x + D/2 - S/2 + 3, by = p.y - D/2 - S/2 + 3;
+      /* a token's chip keeps the corner it has always had; a tokenless one is
+         placed off the drawing itself — see glyphFoot() */
+      let bx, by;
+      if ((GLYPH[iconOf(anchor)] || {}).fam === 'none'){
+        const e = glyphFoot(iconOf(anchor));
+        bx = p.x + e.right + 1 + gap;
+        by = p.y + e.top - 1 - gap - S;
+      } else {
+        bx = p.x + D/2 - S/2 + 3; by = p.y - D/2 - S/2 + 3;
+      }
       ctx.fillStyle = col;
       ctx.fillRect(bx - gap, by - gap, S + gap*2, S + gap*2);
       ctx.fillStyle = css.ink;
@@ -5080,6 +5089,45 @@ if (document.getElementById('fcopylink')){
 }
 
 /* ---- hit testing ---- */
+/* ROUND TWENTY-THREE 23a·2 — WHERE THE CHIP SITS, FOR A MARK WITH NO TOKEN.
+   The corner offset was derived from a 24px token box, and for a token that
+   is right. A context mark has no token: it is a bare glyph about 10px wide,
+   and the same offset can land the chip on the drawing it is counting.
+   Measured across all eleven tokenless glyphs, SIX would be covered —
+   combustion, grid gate, crane, decontaminator, well and reservoir. The
+   antenna mast the designer asked about is not one of them; it clears by
+   1.5px, which is luck rather than design, and luck is not a rule.
+   So a tokenless anchor places its chip from its own DRAWN FOOTPRINT, stroke
+   and halo included, with the chip's bottom-left a pixel clear of the
+   footprint's top-right. Rasterised once per glyph and kept, the same way
+   Path2D objects are kept — eleven one-off measurements at boot. */
+const FOOT = {};
+function glyphFoot(ic){
+  if (FOOT[ic]) return FOOT[ic];
+  const g = GLYPH[ic];
+  if (!g) return (FOOT[ic] = {right: 12, top: -12});
+  const S = 60, c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const x = c.getContext('2d'), k = 15 / 16;
+  x.save(); x.translate(S/2 - 8*k, S/2 - 8*k); x.scale(k, k);
+  x.lineJoin = x.lineCap = 'round';
+  x.strokeStyle = '#fff'; x.fillStyle = '#fff';
+  x.lineWidth = 5.7;                      // stroke plus the halo each side
+  if (g.s) x.stroke(new Path2D(g.s));
+  if (g.f) x.fill(new Path2D(g.f));
+  x.restore();
+  const d = x.getImageData(0, 0, S, S).data;
+  let right = -99, top = 99;
+  for (let i = 0; i < d.length; i += 4){
+    if (d[i+3] < 40) continue;
+    const px = (i/4) % S, py = Math.floor((i/4) / S);
+    if (px - S/2 > right) right = px - S/2;
+    if (py - S/2 < top) top = py - S/2;
+  }
+  return (FOOT[ic] = {right: right < -98 ? 12 : right,
+                      top:  top  >  98 ? -12 : top});
+}
+
 function pickHit(px, py){
   let best = null, bd = PICK_R;
   for (const h of hits){
@@ -5096,7 +5144,13 @@ function pickHit(px, py){
   if (!best){
     for (const h of hits){
       if (h.type !== 'mark' || !coGroups.has(h.m)) continue;
-      const bx = h.x + 24/2 - 14/2 + 3, by = h.y - 24/2 - 14/2 + 3;
+      let bx, by;
+      if ((GLYPH[iconOf(h.m)] || {}).fam === 'none'){
+        const e = glyphFoot(iconOf(h.m));
+        bx = h.x + e.right + 2.5; by = h.y + e.top - 16.5;
+      } else {
+        bx = h.x + 24/2 - 14/2 + 3; by = h.y - 24/2 - 14/2 + 3;
+      }
       if (px >= bx - 2 && px <= bx + 16 && py >= by - 2 && py <= by + 16){
         best = h; break;
       }
