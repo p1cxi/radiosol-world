@@ -101,7 +101,15 @@
   /* round five: the public map has no rail, so the stage takes the whole grid.
      Hiding the rail alone is not enough — the column stays and the canvas
      collapses into it. */
-  .shell.nopanel{grid-template-columns:1fr}
+  /* BOTH AXES, and the rows half took until launch night on a phone. The
+     comment above is exactly right and was half-applied: under 900px the
+     shell becomes `grid-template-rows:auto 1fr`, nopanel reset only the
+     columns, and so the stage — the sole remaining item once the rail is
+     display:none — landed in the AUTO row and collapsed to a canvas's
+     intrinsic height. 195px of map above 471px of nothing, on a 666px shell.
+     The rail was never the thing eating the screen on the public build; it is
+     not rendered there at all. The space was simply being thrown away. */
+  .shell.nopanel{grid-template-columns:1fr; grid-template-rows:1fr}
   .shell.nopanel .rail{display:none}
   /* ...but the personal build's rail is a DRAWER, not a column, and it has to
      survive nopanel to open at all. Three classes beat the two in .rail.drawer,
