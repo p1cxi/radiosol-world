@@ -1379,7 +1379,19 @@
        because the row grows rightward when the input opens — 346 + 30 + 6 +
        294 ran 290px off the screen. It moves under the tier strip instead and
        opens from the left margin, where it has the whole width to grow into. */
-    .f-find{left:14px; top:var(--tierbottom, 118px); z-index:8}
+    /* THE TOOL ROW JOINS THE STACK. It was the one piece of top chrome the
+       round-five phone pass never moved: anchored right:14 top:14, it kept
+       its desktop corner while the tier card grew to the full width under it,
+       and 336 + 256 does not fit in 390. Measured by tools/probe_chrome.py at
+       390x844: SIX of the seven controls — zoom in, zoom out, FIT, the theme
+       toggle, help and the Discord link — failed elementFromPoint at their own
+       centres. Not "looked cramped". Could not be pressed. At 360 it was all
+       seven. A control you can see and cannot touch is the worst of the three
+       states, because nothing about it says it is gone.
+       It stacks rather than shrinks: these are the map's verbs and dropping
+       one to make room would be choosing which verb nobody gets. */
+    .tools{right:auto; left:14px; top:var(--tierbottom, 118px); flex-wrap:wrap}
+    .f-find{left:14px; top:var(--toolsbottom, 156px); z-index:8}
     .f-find input{width:calc(100vw - 70px); max-width:none}
     .f-ac{left:0; width:calc(100vw - 56px)}
     /* The dock's label is ~150px of a 390px screen, and it was what the
@@ -1387,6 +1399,13 @@
        spider explains itself the moment you touch it; the label is a desktop
        courtesy and gives up its space first. */
     .f-drop .dlbl{display:none}
+    /* ...and once the label is gone the 42px spider is still there, which the
+       readings strip had been running underneath all along: X/Z/Y, the scale
+       bar and the imagery chip share a bottom edge with the dock, so the last
+       chip sat beneath it. Both are bottom:14, so no vertical order separates
+       them — only width does. The strip gives way, because it wraps and the
+       dock cannot. */
+    .hud{max-width:calc(100% - 84px)}
 
     /* THE FOUR PANELS BUILT AFTER THIS BLOCK WAS WRITTEN. The covered scan,
        the readings panel, [THIS SPOT] and the full frame all landed 16–18.10
@@ -5567,14 +5586,30 @@ document.getElementById('theme').onclick = () => {
    height, so this does, and keeps doing it: the observer catches the wrap
    changing on rotate, on a font swap, and on the strip being unhidden for the
    public build after boot. */
+/* TWO OFFSETS, ONE MEASUREMENT PASS, and the second derived rather than read.
+   The tool row now sits between the tier strip and the find row, so the find
+   row needs the bottom of the TOOLS — but a ResizeObserver on the tool row
+   would not fire when the row merely MOVES, and moving is exactly what it does
+   when the tier strip rewraps. So its own height is observed and its position
+   is computed from the offset above it, which is true whatever happens up
+   there. */
 (() => {
   const t = document.getElementById('ftier');
+  const tools = document.querySelector('.tools');
   if (!t) return;
   const set = () => {
     const h = t.hidden ? 0 : t.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--tierbottom', (14 + h + 8) + 'px');
+    const tb = 14 + h + 8;
+    const th = tools ? tools.getBoundingClientRect().height : 0;
+    const r = document.documentElement.style;
+    r.setProperty('--tierbottom', tb + 'px');
+    r.setProperty('--toolsbottom', (tb + th + 8) + 'px');
   };
-  if (window.ResizeObserver) new ResizeObserver(set).observe(t);
+  if (window.ResizeObserver){
+    const ro = new ResizeObserver(set);
+    ro.observe(t);
+    if (tools) ro.observe(tools);
+  }
   addEventListener('resize', set);
   set();
 })();
