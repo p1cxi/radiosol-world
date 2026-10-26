@@ -34,7 +34,7 @@
     --font-ui:"IBM Plex Mono",ui-monospace,"DejaVu Sans Mono",Menlo,Consolas,monospace;
     --font-data:"Silkscreen",var(--font-ui);
     --ground:#0B0A08; --panel:#13110C; --sunk:#090806; --rule:#2B2618;
-    --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040;
+    --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040; --feature:#B8B09C;
     --amber:#F3C44B; --amber-dim:#9A7822;
     --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A;
     --popup:#6A6354; --anomaly:#C79BE8; --gated:#B9A0BD;
@@ -47,7 +47,7 @@
   @media (prefers-color-scheme: light){
     :root{
       --ground:#E8E3D6; --panel:#F3EFE4; --sunk:#DED8C8; --rule:#C6BFAB;
-      --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872;
+      --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872; --feature:#5E5745;
       --amber:#8A6400; --amber-dim:#7A6220;   /* was #A98C3E: measured 2.8:1 on --panel, and the round-eight card leans on this token for the Esc tab, the zone line and every cell label */
       --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52; --doc:#4E6B10;
       --popup:#9A937E; --anomaly:#6C3F96; --gated:#6E4E72;
@@ -60,7 +60,7 @@
   }
   :root[data-theme="dark"]{
     --ground:#0B0A08; --panel:#13110C; --sunk:#090806; --rule:#2B2618;
-    --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040;
+    --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040; --feature:#B8B09C;
     --amber:#F3C44B; --amber-dim:#9A7822;
     --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A;
     --popup:#6A6354; --anomaly:#C79BE8; --gated:#B9A0BD;
@@ -72,7 +72,7 @@
   }
   :root[data-theme="light"]{
     --ground:#E8E3D6; --panel:#F3EFE4; --sunk:#DED8C8; --rule:#C6BFAB;
-    --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872;
+    --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872; --feature:#5E5745;
     --amber:#8A6400; --amber-dim:#7A6220;   /* was #A98C3E: measured 2.8:1 on --panel, and the round-eight card leans on this token for the Esc tab, the zone line and every cell label */
     --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52;
     --popup:#9A937E; --anomaly:#6C3F96; --gated:#6E4E72;
@@ -2005,7 +2005,17 @@ const DATA = {"cells":[-3719,5249,4,0,-3457,5249,11,0,-3205,5249,10,0,-3719,4998
 const LAYERS = [
   {id:'site',    nm:'Registered sites', col:'--amber',     grp:'Surface'},
   {id:'custom',  nm:'Points of interest', col:'--wp',      grp:'Surface'},
-  {id:'feature', nm:'Ground features', col:'--ink-dim',    grp:'Surface'},
+  /* ROUND NINETEEN 19c — ground features get their OWN token rather than
+     borrowing --ink-dim, which the tool row, the legend and half the chrome
+     also wear. The silent mast measured 1.98:1 against the terrain in dark,
+     the lowest of the six glyphs the designer was sent, and it is low for a
+     structural reason rather than by bad luck: it is fam 'none', so it has no
+     soot token behind it and sits straight on the photograph. Every feature
+     in that family has the same problem, so the fix belongs to the layer.
+     Dark lifts to #B8B09C, their value. Light measured 4.22:1 already and is
+     left exactly as it was — changing both would have been tidier and would
+     have dimmed a theme that was fine. */
+  {id:'feature', nm:'Ground features', col:'--feature',    grp:'Surface'},
   {id:'hazard',  nm:'Hazards', col:'--hazard',         grp:'Surface'},
   {id:'anomaly', nm:'Tunnel entrances', col:'--anomaly',   grp:'Underground'},
   {id:'collector', nm:'Collector entrances', col:'--collector', grp:'Underground'},
@@ -2548,6 +2558,15 @@ let view = {x:0, z:0, s:1}, pinned = null, hover = null, query = '';
 // points, and a `let` assigned inside its own dead zone throws.
 let findDismiss = null;
 let hits = [];   // what draw() actually put on screen — marks AND stacks
+/* 19a — the inseparable groups, rebuilt by every draw() alongside `hits`
+   because they depend on the tier and the tier can change under you.
+   `coGroups` maps an anchor to every mark standing on its pixel, including
+   itself; `coHidden` is everyone who therefore does not draw. Declared up here
+   beside `hits` rather than inside draw(), for the reason the rest of this
+   file's top-level state is: the click handler reads them, and a `let` inside
+   the function would be a ReferenceError the first time a tap landed before
+   the first paint. */
+let coGroups = new Map(), coHidden = new Set();
 let me = null;   // your position, from the ranging readout
 
 // User marks live in localStorage, not in the build. The baked `done` flags
@@ -3520,6 +3539,45 @@ function draw(){
     if (px < -80 || py < -80 || px > W+80 || py > H+80) continue;
     pts.push({m, ic: iconOf(m), x: px, y: py});
   }
+  /* ---- ROUND NINETEEN 19a — the inseparable groups -------------------------
+     Marks the zoom ceiling can never pull apart are ONE thing on screen with
+     several names. Until now every one of them drew its own token at the same
+     pixel, which does not read as "two things here": at 0.02px apart it reads
+     as a doubled edge, which reads as a rendering fault. The designer's call,
+     and they are right.
+     So the group draws ONCE — the anchor, which keeps its token and its label
+     because a district's name is how anyone works out where they are — and
+     wears a count. Everyone else is suppressed entirely: no glyph, no hit.
+     THE SAME RULE DECIDES CHIP AND LIST, deliberately. separable() is what the
+     click handler asks before choosing between flying in and opening
+     [HERE · n], and it is what decides a chip here, so the two cannot drift
+     into disagreeing about whether a spot holds one thing or two.
+     And the tier filter is already applied — `pts` is built from visible()
+     only — so a mark the tier withholds is not in a group and cannot be
+     counted by one. That is the spoiler rule the list obeys, inherited rather
+     than restated. */
+  coGroups = new Map(); coHidden = new Set();
+  for (let i = 0; i < pts.length; i++){
+    const a = pts[i].m;
+    if (coHidden.has(a)) continue;
+    let g = null;
+    for (let j = i + 1; j < pts.length; j++){
+      const b = pts[j].m;
+      if (coHidden.has(b)) continue;
+      if (separable([a, b])) continue;
+      (g = g || [a]).push(b);
+    }
+    if (!g) continue;
+    // the anchor is the most public member, the same ordering the list uses
+    g.sort((p, q) => spoilerOf(p) - spoilerOf(q));
+    coGroups.set(g[0], g);
+    for (const m of g) if (m !== g[0]) coHidden.add(m);
+  }
+  if (coHidden.size){
+    for (let i = pts.length - 1; i >= 0; i--)
+      if (coHidden.has(pts[i].m)) pts.splice(i, 1);
+  }
+
   const sites = pts.filter(p => p.ic === 'site');
   const ctxs  = pts.filter(p => p.ic !== 'site' && GLYPH[p.ic] && GLYPH[p.ic].fam === 'none');
   const recs  = pts.filter(p => p.ic !== 'site' && GLYPH[p.ic] && GLYPH[p.ic].fam !== 'none')
@@ -3676,6 +3734,38 @@ function draw(){
     ctx.fillStyle = colOf(L.s.m); ctx.fillText(L.text, x + 10, y + h/2 + .5);
   }
   ctx.textBaseline = 'alphabetic';
+
+  /* 19a — the count chip, after the LABELS and not merely after the tokens.
+     Drawn before them it came out with a bite taken from its corner: a
+     district label is a soot rectangle with a rim, placed by the dodging
+     pass, and the anchor most likely to carry a chip is exactly the kind of
+     mark that has a name sitting beside it. The number is the one thing on
+     this map that must not be half-covered, because half a numeral is still
+     a numeral and it will be read as one. 14px ink square,
+     card-colour numeral, on the anchor's top-right corner with a 1.5px
+     card-colour surround standing in for the gap the comp draws.
+     IT IS NOT A TARGET. No hit is pushed for it: it is painted inside the
+     anchor's existing 17px pick radius, so pressing the chip and pressing the
+     mark are the same gesture — which is what you want, since both mean "what
+     is here". A second hit would also have had to decide what it does when
+     the group is open, and the answer would have been "the same thing". */
+  if (coGroups.size){
+    ctx.font = '8px Silkscreen,ui-monospace,monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const [anchor, g] of coGroups){
+      const p = pts.find(q => q.m === anchor);
+      if (!p) continue;                       // culled off-screen this frame
+      const col = colOf(anchor), S = 14, gap = 1.5;
+      const bx = p.x + D/2 - S/2 + 3, by = p.y - D/2 - S/2 + 3;
+      ctx.fillStyle = col;
+      ctx.fillRect(bx - gap, by - gap, S + gap*2, S + gap*2);
+      ctx.fillStyle = css.ink;
+      ctx.fillRect(bx, by, S, S);
+      ctx.fillStyle = col;
+      ctx.fillText(String(g.length), bx + S/2, by + S/2 + .5);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
 
   // dropped waypoints — ours, so they use the waypoint colour and nothing else
   if (typeof waypoints !== 'undefined'){
@@ -4687,6 +4777,13 @@ function marksAt(px, py){
     if (h.type === 'stack') out.push(...h.ms);
     else if (h.m) out.push(h.m);
   }
+  /* 19a — and the members the chip is standing in for. Since the group draws
+     once, only the anchor has a hit, so without this the list would open with
+     a single row and the chip would be claiming two. The count on the map and
+     the rows in the panel come from the SAME map, which is the whole reason
+     coGroups is keyed by anchor rather than recomputed here. */
+  for (const m of out.slice())
+    if (coGroups.has(m)) out.push(...coGroups.get(m));
   return [...new Set(out)];
 }
 /* THE TIER DECIDES WHO IS IN THE GROUP, and this is a spoiler rule rather
