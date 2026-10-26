@@ -393,6 +393,13 @@
     stroke-linecap:round; stroke-linejoin:round;
   }
   .tools a.ico svg circle, .tools a.ico svg .fil{fill:currentColor}
+  /* A SOLID GLYPH IN A ROW OF LINE ART, for the one icon that is somebody
+     else's mark and has to be recognised rather than read. It needs BOTH
+     halves: `.fil` above would give it the fill, but `.tools a.ico svg path`
+     still lands a 1.5-unit stroke on it, and 1.5 units of a 24 viewBox is a
+     fat outline around a logo. Specificity settles it rather than position —
+     (0,3,2) against (0,2,3) — so this cannot be undone by someone moving it. */
+  .tools a.ico svg .solid{fill:currentColor; stroke:none}
 
 
   /* ---- round five: no panel, four things floating on the map ------------
@@ -1576,10 +1583,24 @@
       <button id="railtab" hidden title="Workbench (`)"
               aria-label="Toggle the workbench">⌸</button>
       <!-- The two places this map comes from: the developers' own room, and
-           the log of making it. Drawn rather than branded — the row is five
-           typographic controls and a pair of pasted corporate logos would be
-           the only thing on the page not in its own hand. They are links, not
-           embeds: nothing is fetched from either host until someone clicks. -->
+           the log of making it. They are links, not embeds: nothing is fetched
+           from either host until someone clicks.
+           ONE OF THE TWO IS NOW THE REAL MARK, and the reasoning that used to
+           sit here — "drawn rather than branded, a pasted corporate logo would
+           be the only thing on the page not in its own hand" — lost to a
+           simpler fact. The drawn version was a speech bubble with two dots,
+           and a speech bubble does not say Discord to anyone; it says chat.
+           An icon whose whole job is to be recognised fails if it is only
+           tasteful. Rendered at the size it actually ships, 17px, the two
+           OUTLINE versions of the mark were worse still — the ring eyes
+           collapse into goggles and read as some other animal entirely.
+           The build log stays in our hand, because it is ours and there is
+           nothing to recognise it against. -->
+      <!-- Monochrome, which is the use Discord's own guidance allows; it takes
+           --ink-dim and goes amber on hover like every other control here. -->
+      <!-- Not recoloured beyond that, not placed on anything claiming to be
+           theirs, and the banner two rows up says unofficial in the first
+           three words. -->
       <!-- discord.gg/radiosol, not an invite code: this is the URL the
            developers publish on their own Steam page, it is self-evidently
            theirs to anyone reading it, and a vanity URL does not expire the
@@ -1588,9 +1609,8 @@
       <a id="tdiscord" class="ico" href="https://discord.gg/radiosol"
          target="_blank" rel="noopener noreferrer"
          title="RADIOSOL community Discord" aria-label="RADIOSOL community Discord (opens a new tab)">
-        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <path d="M2.4 3.6h11.2v7.1H8.4l-3.3 2.6v-2.6H2.4z"/>
-          <circle cx="6" cy="7.1" r="1"/><circle cx="10" cy="7.1" r="1"/>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path class="solid" d="M18.59 5.89C17.36 5.32 16.05 4.9 14.67 4.66C14.5 4.96 14.3 5.37 14.17 5.7C12.71 5.48 11.26 5.48 9.83 5.7C9.69 5.37 9.49 4.96 9.32 4.66C7.94 4.9 6.63 5.32 5.4 5.89C2.92 9.63 2.25 13.28 2.58 16.87C4.23 18.1 5.82 18.84 7.39 19.33C7.78 18.8 8.12 18.23 8.42 17.64C7.85 17.43 7.31 17.16 6.8 16.85C6.94 16.75 7.07 16.64 7.2 16.54C10.33 18 13.72 18 16.81 16.54C16.94 16.65 17.07 16.75 17.21 16.85C16.7 17.16 16.15 17.42 15.59 17.64C15.89 18.23 16.23 18.8 16.62 19.33C18.19 18.84 19.79 18.1 21.43 16.87C21.82 12.7 20.76 9.09 18.61 5.89H18.59ZM8.84 14.67C7.9 14.67 7.13 13.8 7.13 12.73C7.13 11.66 7.88 10.79 8.84 10.79C9.8 10.79 10.56 11.66 10.55 12.73C10.55 13.79 9.8 14.67 8.84 14.67ZM15.15 14.67C14.21 14.67 13.44 13.8 13.44 12.73C13.44 11.66 14.19 10.79 15.15 10.79C16.11 10.79 16.87 11.66 16.86 12.73C16.86 13.79 16.11 14.67 15.15 14.67Z"/>
         </svg></a>
       <a id="tlog" class="ico" href="https://youtu.be/uareB8YnxSw?list=PLc6SlyvYlikM"
          target="_blank" rel="noopener noreferrer"
