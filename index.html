@@ -45,7 +45,7 @@
     --ground:#0B0A08; --panel:#13110C; --sunk:#090806; --rule:#2B2618;
     --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040; --feature:#B8B09C;
     --amber:#F3C44B; --amber-dim:#9A7822;
-    --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A; --anomaly:#C79BE8; --gated:#B9A0BD;
+    --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A; --anomaly:#C79BE8; --gated:#B9A0BD; --shelter:#9BB4E8;
     --soot:11,10,8; --rim:rgba(234,227,210,0.6); --tunnel:#5FB9AC;
     --collector:#6FD8C4; --hazard:#F2A33C; --geo-ulo:#1E4A52; --geo-uhi:#5FC8D8; --wp:#FF4FA3;
     --geo-lo:#6B5320; --geo-hi:#F6CE6A;
@@ -56,7 +56,7 @@
       --ground:#E8E3D6; --panel:#F3EFE4; --sunk:#DED8C8; --rule:#C6BFAB;
       --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872; --feature:#5E5745;
       --amber:#8A6400; --amber-dim:#7A6220;   /* was #A98C3E: measured 2.8:1 on --panel, and the round-eight card leans on this token for the Esc tab, the zone line and every cell label */
-      --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52; --doc:#4E6B10; --anomaly:#6C3F96; --gated:#6E4E72;
+      --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52; --doc:#4E6B10; --anomaly:#6C3F96; --gated:#6E4E72; --shelter:#2F4C8A;
       --soot:243,239,228; --rim:rgba(36,31,20,0.65); --tunnel:#0E6E62;
       --collector:#0E6E62; --hazard:#9A5A00; --geo-ulo:#A8C4C2; --geo-uhi:#17555E; --wp:#B0005F;
       --geo-lo:#BDB49A; --geo-hi:#3A3426;
@@ -67,7 +67,7 @@
     --ground:#0B0A08; --panel:#13110C; --sunk:#090806; --rule:#2B2618;
     --ink:#EAE3D2; --ink-dim:#8A8371; --ink-faint:#565040; --feature:#B8B09C;
     --amber:#F3C44B; --amber-dim:#9A7822;
-    --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A; --anomaly:#C79BE8; --gated:#B9A0BD;
+    --hot:#FF6A42; --probe:#74C3E6; --server:#7BC9A2; --doc:#B9D36A; --anomaly:#C79BE8; --gated:#B9A0BD; --shelter:#9BB4E8;
     --soot:11,10,8; --rim:rgba(234,227,210,0.6); --tunnel:#5FB9AC;
     --collector:#6FD8C4; --hazard:#F2A33C; --geo-ulo:#1E4A52; --geo-uhi:#5FC8D8; --wp:#FF4FA3;
     --geo-lo:#6B5320; --geo-hi:#F6CE6A;
@@ -77,7 +77,7 @@
     --ground:#E8E3D6; --panel:#F3EFE4; --sunk:#DED8C8; --rule:#C6BFAB;
     --ink:#241F14; --ink-dim:#5E5745; --ink-faint:#8E8872; --feature:#5E5745;
     --amber:#8A6400; --amber-dim:#7A6220;   /* was #A98C3E: measured 2.8:1 on --panel, and the round-eight card leans on this token for the Esc tab, the zone line and every cell label */
-    --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52; --anomaly:#6C3F96; --gated:#6E4E72;
+    --hot:#C33A12; --probe:#1E6E96; --server:#1E7A52; --anomaly:#6C3F96; --gated:#6E4E72; --shelter:#2F4C8A;
       --soot:243,239,228; --rim:rgba(36,31,20,0.65); --tunnel:#0E6E62;
       --collector:#0E6E62; --hazard:#9A5A00; --geo-ulo:#A8C4C2; --geo-uhi:#17555E; --wp:#B0005F;
     --geo-lo:#BDB49A; --geo-hi:#3A3426;
@@ -2174,6 +2174,19 @@ const LAYERS = [
   {id:'hazard',  nm:'Hazards', col:'--hazard',         grp:'Surface'},
   {id:'anomaly', nm:'Tunnel entrances', col:'--anomaly',   grp:'Underground'},
   {id:'collector', nm:'Collector entrances', col:'--collector', grp:'Underground'},
+  /* THE ROW THAT WAS MISSING. The dust shelters shipped with marks, a glyph
+     and a tier, and no layer — so layerOf() returned 'shelter', css had no
+     such key, and colOf() handed the glyph `undefined`. Canvas does not throw
+     on an invalid strokeStyle, it keeps the PREVIOUS one, which token() had
+     just set to css.rim: a 60%-transparent off-white. The plate drew at full
+     strength and the logo inside it drew in a leftover colour, which is
+     exactly what "it kind of fades out" looks like.
+     It also means shelters had no entry in the layer column and could not be
+     switched off like every other kind.
+     --shelter is PROVISIONAL and belongs in the round 27 ask alongside the
+     interim glyph: blue because nothing else here is, and because a shelter
+     reads as somewhere safe rather than somewhere hazardous. */
+  {id:'shelter', nm:'Dust shelters', col:'--shelter',     grp:'Surface'},
   {id:'server',  nm:'Servers', col:'--server',             grp:'Underground'},
   {id:'robot0',  nm:'Not scanned', col:'--hot',            grp:'Machines'},
   {id:'robotG',  nm:'Gated (endgame)', col:'--gated',      grp:'Machines'},
