@@ -1087,8 +1087,19 @@
   /* 18b — the handle. Drawn above 600px too, just never shown: a rule that
      only exists inside a media query is a rule nobody finds when they are
      reading the card's own styles. */
-  .card .grab{display:none; flex:0 0 20px; align-items:center;
+  .card .grab{display:none; flex:0 0 auto; align-items:center; gap:3px;
+              flex-direction:column; padding:5px 0 3px;
               justify-content:center; cursor:grab; touch-action:none}
+  /* ROUND 25a — THE HANDLE SAYS WHAT IS UNDER IT. A bare grab bar asks a
+     reader to discover by dragging; naming the rows below turns the same
+     gesture into an answer to a question they already have. Empty when
+     nothing is below, because a label promising more and delivering none is
+     worse than no label. */
+  .card .grablab{font:8px Silkscreen,ui-monospace,monospace;
+                 letter-spacing:.09em; color:var(--ink-faint);
+                 max-width:88%; overflow:hidden; white-space:nowrap;
+                 text-overflow:ellipsis; text-align:center}
+  .card .grablab:empty{display:none}
   .card .grab i{display:block; width:34px; height:4px; border-radius:2px;
                 background:var(--rule)}
   .card .grab:active{cursor:grabbing}
@@ -2004,7 +2015,7 @@
            shape every sheet on a phone already uses. Hidden above 600px,
            where the card floats beside its mark and there is nothing to
            drag. -->
-      <div class="grab" id="cardgrab" aria-hidden="true"><i></i></div>
+      <div class="grab" id="cardgrab" aria-hidden="true"><i></i><span class="grablab" id="cardgrablab"></span></div>
       <p class="kind" id="c-kind">
         <span id="c-kind-t"></span>
         <span class="c-sp"></span>
@@ -4423,7 +4434,13 @@ const GAP = 60;
    drift away from the content. Full is the card's own scrollHeight plus the
    grab bar, clamped to the cap, so it cannot come up a row short when a mark
    has an ALSO HERE line and cannot overrun when it does not. */
-const SHEET_PEEK = 262, SHEET_BAR = 20, SHEET_KEEP = 80;
+/* 25a — 206, their figure. The bar below is MEASURED rather than assumed:
+   the handle carries a label now, so its height is content and a constant
+   here would be a second place for it to drift. */
+const SHEET_PEEK = 206, SHEET_KEEP = 80;
+function sheetBar(){
+  return card.querySelector('.grab')?.offsetHeight || 20;
+}
 let sheetAt = 0;                 // 0 closed, 1 peek, 2 full
 function phoneSheet(){ return matchMedia('(max-width:600px)').matches; }
 function sheetFull(){
@@ -4432,11 +4449,61 @@ function sheetFull(){
   const want = (body ? body.scrollHeight : 0)
              + (card.querySelector('.kind')?.offsetHeight || 24)
              + (card.querySelector('.plates:not([hidden])')?.offsetHeight || 0)
-             + SHEET_BAR + 2;
+             + sheetBar() + 2;
   /* the cap is the stage less a strip, so the mark a reader just pressed is
      never completely buried by the thing describing it */
   return Math.min(want, st.height - SHEET_KEEP);
 }
+/* WHAT IS UNDER THE FOLD, in the card's own words. The peek hides the detail
+   rows, the photograph, the record and the scan; this reads back the labels
+   the card itself wrote rather than keeping a second list of section names
+   that would drift the first time a row was added. Three at most, because
+   the handle is one line on a 360px screen. */
+function sheetLabel(){
+  const el = document.getElementById('cardgrablab');
+  if (!el) return;
+  if (!phoneSheet() || sheetAt === 2){ el.textContent = ''; return; }
+  const parts = [];
+  for (const dt of card.querySelectorAll('dl dt')){
+    const t = (dt.textContent || '').trim();
+    if (t && !parts.includes(t)) parts.push(t);
+  }
+  for (const [id, word] of [['c-rec', 'Record'], ['c-scan', 'Scan'],
+                            ['c-wf', 'Waterfall'], ['c-rd', 'Reading']]){
+    const n = document.getElementById(id);
+    if (n && !n.hidden && (n.textContent || '').trim() && !parts.includes(word))
+      parts.push(word);
+  }
+  if (card.querySelector('.plates img[src]')) parts.push('Photo');
+  el.textContent = parts.slice(0, 3).join(' · ').toUpperCase();
+}
+
+/* ONE RISE AND SETTLE, ONCE. A sheet that can be dragged looks exactly like a
+   sheet that cannot, and the peek deliberately withholds the rows that would
+   tell you otherwise. 40px is enough to read as movement without reading as a
+   glitch. Once per SESSION rather than once per card, because the second time
+   it is noise. Reduced motion skips it entirely — the label still says what
+   is below, so nothing is lost but the nudge. */
+const SHEET_HINT = 'n96.sheethint';
+/* THE SETTLE IS ITS OWN FUNCTION so it can be asserted without waiting. A
+   260ms timer cannot be observed by a probe that runs under --screenshot —
+   the browser is torn down at load and every delayed beacon in this repo has
+   died that way. Scheduling is the browser's job and is not what can break;
+   what CAN break is the restore putting back a wrong value, or putting one
+   back after the reader has already dragged the sheet somewhere else. That
+   is testable the moment it has a name. */
+function sheetSettle(h){
+  if (sheetAt === 1)
+    document.documentElement.style.setProperty('--sheet', h + 'px');
+}
+function sheetHint(h){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  try { if (sessionStorage.getItem(SHEET_HINT)) return;
+        sessionStorage.setItem(SHEET_HINT, '1'); } catch (e) { return; }
+  document.documentElement.style.setProperty('--sheet', (h + 40) + 'px');
+  setTimeout(() => sheetSettle(h), 260);
+}
+
 function sheetSet(level){
   if (!phoneSheet()){
     document.documentElement.style.removeProperty('--sheet');
@@ -4463,6 +4530,8 @@ function sheetSet(level){
   document.querySelector('.shell').classList.toggle('sheetfull', level === 2);
   const h = level === 0 ? 0 : level === 1 ? SHEET_PEEK : sheetFull();
   document.documentElement.style.setProperty('--sheet', h + 'px');
+  sheetLabel();
+  if (level === 1) sheetHint(h);
   if (level) sheetCentre(h);
 }
 /* THE MAP MOVES SO THE MARK STAYS VISIBLE. A sheet covering the bottom half
