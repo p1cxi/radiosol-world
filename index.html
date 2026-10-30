@@ -3069,7 +3069,32 @@ function layerOf(m){
   if (m.done || m.cleared) return 'robot1';
   return m.gated ? 'robotG' : 'robot0';
 }
+/* A QUERY THAT MATCHES NOTHING MUST NOT FILTER. visible() is
+   `matches(m) && spoilerOf(m) <= spoiler`, so a query with no hits used to
+   hide every mark on the map — type a letter that matches nothing, drag the
+   map, and you are looking at bare sand with no marks and no explanation. The
+   dropdown said "Nothing on the map matches that", but it was the only thing
+   saying so and it did not survive the drag.
+   Filtering to zero is not a filter, it is a blank screen. The dropdown is
+   the channel for "no results"; the map keeps showing the map. A query that
+   DOES match still filters, because dragging around the marks you searched
+   for is the whole point of the field. */
+let queryBlank = false;
+function queryRecheck(){
+  queryBlank = false;
+  if (!query) return;
+  for (const m of DATA.marks){
+    if (m.hideAt && spoiler >= m.hideAt) continue;
+    if (spoilerOf(m) > spoiler) continue;
+    if (rawMatch(m)) return;
+  }
+  queryBlank = true;      // nothing the tier allows matches, so do not filter
+}
 function matches(m){
+  if (!query || queryBlank) return true;
+  return rawMatch(m);
+}
+function rawMatch(m){
   if (!query) return true;
   const hay = (m.n + ' ' + (m.zone||'') + ' ' + (m.file||'') + ' '
                + (m.hint||'')).toLowerCase();
@@ -4644,7 +4669,8 @@ function cardLeadOff(){
   const el = document.getElementById('cardlead');
   if (el) el.hidden = true;
 }
-function setQuery(v){ query = (v||'').trim().toLowerCase(); refreshNear(); draw(); }
+function setQuery(v){ query = (v||'').trim().toLowerCase(); queryRecheck();
+                      refreshNear(); draw(); }
 const WPK = 'n96.waypoints.v1';
 let waypoints = [];
 try { waypoints = JSON.parse(localStorage.getItem(WPK) || '[]'); } catch (e) {}
@@ -4966,6 +4992,23 @@ addEventListener('pointerup', () => { clearTimeout(lpT); lpT = null; });
 addEventListener('pointerdown', e => {
   const el = document.getElementById('spot');
   if (el && !el.hidden && !el.contains(e.target)) spotClose();
+}, true);
+
+/* AND THE SEARCH SUGGESTIONS, which were the one open thing with no outside
+   press to close them. The two above have had it for rounds; this did not, so
+   typing and then dragging the map left the list hanging over the terrain —
+   including the "Nothing on the map matches that" row, which is how the
+   blanking bug above stayed invisible. It closes the LIST, not the field: the
+   text stays, because a query that matches is a filter and dragging through
+   the marks you searched for is what the field is for. */
+addEventListener('pointerdown', e => {
+  const list = document.getElementById('ffac');
+  const field = document.getElementById('ffind');
+  if (!list || !list.classList.contains('on')) return;
+  if (field && field.contains(e.target)) return;
+  list.classList.remove('on');
+  const fi = document.getElementById('ffin');
+  if (fi) fi.setAttribute('aria-expanded', 'false');
 }, true);
 
 /* ---- ROUND NINE 9a — carrying yourself ------------------------------------
@@ -7373,6 +7416,7 @@ document.getElementById('wffullx').onclick = wfFullClose;
 document.getElementById('posclr').onclick = clearMe;
 document.getElementById('find').addEventListener('input', e => {
   query = e.target.value.trim().toLowerCase();
+  queryRecheck();
   const n = DATA.marks.filter(visible).length;
   document.getElementById('findnote').textContent =
     query ? `${n} marker${n===1?'':'s'} match` : '';
@@ -7581,6 +7625,9 @@ function spoilAccept(){
 
 function applySpoiler(lvl){
   spoiler = lvl;
+  // the tier decides which marks a query can hit, so whether it hits NOTHING
+  // changes with it
+  queryRecheck();
   try { localStorage.setItem('n96.spoiler', lvl); } catch (e) {}
   document.getElementById('spoilnote').textContent = SPOILNOTE[lvl];
   const fn = document.getElementById('ftnote'), fc = document.getElementById('ftct');
