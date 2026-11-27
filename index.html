@@ -7536,6 +7536,21 @@ addEventListener('keydown', e => {
 // features that name tiers were written an hour apart and must not each keep
 // their own list
 const TIERNAME = {1: 'Terrain', 2: 'World', 3: 'Records', 4: 'All'};
+
+/* ONE STRING WITH A SLOT, NOT A PREFIX PLUS A NAME. These four buttons were
+   built as a bare prefix plus TIERNAME[t], which a translator cannot be
+   given:
+   the fragment and the name arrive separately and Russian does not
+   necessarily put them in that order. Held back from the export for exactly
+   that reason, which left the only words a reader actually sees on these
+   buttons untranslatable. As a whole literal with {tier} in it, the slot can
+   move to wherever the sentence needs it.
+
+   THE NAME GOES IN NOMINATIVE, because the four tier names are their own
+   rows and are translated once, for the tier strip. Nothing here can
+   decline them, so the phrasing has to work with the dictionary form. */
+const tierText = (s, t) => s.replace(/\{tier\}/, TIERNAME[t] || '');
+
 function countAtTier(t){
   // mirrors visible() with the tier substituted, so the total the dialog
   // promises is the total the strip will show
@@ -7603,8 +7618,8 @@ function requestSpoiler(lvl){
   }));
   document.getElementById('spoilfine').textContent =
     'You can lower the tier any time. Nothing\'s saved, and nothing leaves this browser.';
-  document.getElementById('spoilyes').textContent = 'Reveal ' + (TIERNAME[lvl] || '');
-  document.getElementById('spoilno').textContent = 'Stay on ' + (TIERNAME[spoiler] || '');
+  document.getElementById('spoilyes').textContent = tierText('Reveal {tier}', lvl);
+  document.getElementById('spoilno').textContent = tierText('Stay on {tier}', spoiler);
 
   m.hidden = false; m.classList.add('on');
   // focus the SAFE choice: a stray Enter on an open dialog should not be the
@@ -7658,8 +7673,8 @@ function pinAsk(m){
   document.getElementById('pinbody').textContent =
     `This link points to a ${(TIERNAME[want] || '').toLowerCase()} mark. `
     + `You're on ${(TIERNAME[spoiler] || '').toLowerCase()}.`;
-  document.getElementById('pinraise').textContent = 'Raise to ' + (TIERNAME[want] || '');
-  document.getElementById('pinstay').textContent = 'Stay on ' + (TIERNAME[spoiler] || '');
+  document.getElementById('pinraise').textContent = tierText('Raise to {tier}', want);
+  document.getElementById('pinstay').textContent = tierText('Stay on {tier}', spoiler);
   const el = document.getElementById('pinmodal');
   el.hidden = false; el.classList.add('on');
   // the safe choice takes focus, and Tab stays inside
